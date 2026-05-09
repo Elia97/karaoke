@@ -11,6 +11,8 @@ import { createCatalogController } from "./http/catalog.controller"
 import { createQueueService } from "./queue/queue.service"
 import { createPendingActionsService } from "./lifecycle/pending-actions.service"
 import { createScheduler } from "./lifecycle/scheduler"
+import { createScreenPairingService } from "./screen/screen-pairing.service"
+import { createScreensController } from "./http/screens.controller"
 
 const databaseUrl = requireEnv("DATABASE_URL")
 const googleClientId = requireEnv("GOOGLE_CLIENT_ID")
@@ -32,6 +34,7 @@ const sessions = createSessionService(db)
 const catalog = createCatalogService(db)
 const queue = createQueueService(db)
 const pendingActions = createPendingActionsService(db)
+const screenPairing = createScreenPairingService(db)
 
 const app = new Hono()
 app.get("/", (c) => c.text("Karaoke server"))
@@ -39,6 +42,10 @@ app.get("/health", (c) => c.json({ status: "ok", uptime: process.uptime() }))
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
 app.route("/api/sessions", createSessionsController({ auth, sessions }))
 app.route("/api/catalog", createCatalogController({ auth, catalog }))
+app.route(
+  "/api/screens",
+  createScreensController({ auth, screenPairing, sessions })
+)
 
 const httpServer = serve(
   {
@@ -61,6 +68,7 @@ const gateway = setupGateway({
   catalog,
   queue,
   pendingActions,
+  screenPairing,
   participantTokenSecret: authSecret,
 })
 

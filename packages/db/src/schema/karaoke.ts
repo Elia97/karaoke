@@ -137,6 +137,28 @@ export const queueItem = pgTable(
   ]
 )
 
+export const screenPairing = pgTable(
+  "screen_pairing",
+  {
+    id: text("id").primaryKey(),
+    screenToken: text("screen_token").notNull().unique(),
+    pairingCode: text("pairing_code").notNull(),
+    sessionId: text("session_id").references(() => karaokeSession.id, {
+      onDelete: "cascade",
+    }),
+    hostId: text("host_id").references(() => user.id, {
+      onDelete: "cascade",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    expiresAt: timestamp("expires_at").notNull(),
+    pairedAt: timestamp("paired_at"),
+  },
+  (table) => [
+    index("screen_pairing_code_idx").on(table.pairingCode),
+    index("screen_pairing_session_idx").on(table.sessionId),
+  ]
+)
+
 export const pendingAction = pgTable(
   "pending_action",
   {

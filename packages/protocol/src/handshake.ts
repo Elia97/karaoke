@@ -15,5 +15,6 @@ export const JoinHandshake = z.object({
   code: SessionCodeSchema.optional(),
   nickname: NicknameSchema.optional(),
   participantToken: z.string().optional(),
+  screenToken: z.string().optional(),
 })
 export type JoinHandshake = z.infer<typeof JoinHandshake>

@@ -5,7 +5,6 @@ import type {
   KaraokeSessionConfig,
   KaraokeSessionDto,
   ParticipantDto,
-  UserRole,
 } from "@workspace/protocol/domain"
 import { generateSessionCode } from "../utils/code"
 import { generateId } from "../utils/id"
@@ -70,7 +69,7 @@ export function createSessionService(db: DbClient) {
     id?: string
     sessionId: string
     nickname: string
-    role: UserRole
+    role: "HOST" | "PARTICIPANT"
   }): Promise<ParticipantDto> {
     const id = input.id ?? generateId()
     const now = new Date()

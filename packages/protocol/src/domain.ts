@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const UserRole = z.enum(["HOST", "PARTICIPANT"])
+export const UserRole = z.enum(["HOST", "PARTICIPANT", "SCREEN"])
 export type UserRole = z.infer<typeof UserRole>
 
 export const SessionStatus = z.enum(["WAITING", "ACTIVE", "PAUSED", "ENDED"])

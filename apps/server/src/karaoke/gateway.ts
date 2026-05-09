@@ -41,6 +41,7 @@ import type {
   PendingActionDto,
   PendingActionsService,
 } from "../lifecycle/pending-actions.service"
+import type { ScreenPairingService } from "../screen/screen-pairing.service"
 
 export type GatewayConfig = {
   io: Server
@@ -49,6 +50,7 @@ export type GatewayConfig = {
   catalog: CatalogService
   queue: QueueService
   pendingActions: PendingActionsService
+  screenPairing: ScreenPairingService
   participantTokenSecret: string
   hostReconnectWindowSeconds?: number
 }
@@ -60,7 +62,7 @@ export type Gateway = {
 type SocketData = {
   participantId: string
   sessionId: string
-  role: "HOST" | "PARTICIPANT"
+  role: "HOST" | "PARTICIPANT" | "SCREEN"
   userId: string | null
 }
 
@@ -83,6 +85,33 @@ export function setupGateway(config: GatewayConfig): Gateway {
         } catch {
           // ignore: fall through to participant
         }
+      }
+
+      if (handshake.screenToken) {
+        const pairing = await config.screenPairing.findByToken(
+          handshake.screenToken
+        )
+        if (!pairing || !pairing.sessionId || !pairing.pairedAt) {
+          return rejectWithError(
+            next,
+            "INVALID_HANDSHAKE",
+            "Screen non ancora paired"
+          )
+        }
+        const session = await config.sessions.findById(pairing.sessionId)
+        if (!session) {
+          return rejectWithError(next, "SESSION_NOT_FOUND", "Session not found")
+        }
+        if (session.status === "ENDED") {
+          return rejectWithError(next, "SESSION_ENDED", "Session has ended")
+        }
+        const data = socket.data as SocketData
+        // Screen is in-memory only (no participant DB record); id derives from pairing
+        data.participantId = `screen:${pairing.id}`
+        data.sessionId = session.id
+        data.role = "SCREEN"
+        data.userId = null
+        return next()
       }
 
       if (!handshake.code) {
@@ -209,7 +238,19 @@ export function setupGateway(config: GatewayConfig): Gateway {
     room.session = sessionDto
     room.participants = new Map(participants.map((p) => [p.id, p]))
 
-    const me = room.participants.get(participantId)
+    let me = room.participants.get(participantId)
+    if (!me && role === "SCREEN") {
+      const now = new Date().toISOString()
+      me = {
+        id: participantId,
+        sessionId,
+        nickname: `Screen-${participantId.slice(7, 13)}`,
+        role: "SCREEN",
+        isConnected: true,
+        connectedAt: now,
+        lastActivityAt: now,
+      }
+    }
     if (!me) {
       socket.disconnect(true)
       return
@@ -292,6 +333,10 @@ export function setupGateway(config: GatewayConfig): Gateway {
       async (payload: unknown, ack?: (response: RequestSongAck) => void) => {
         if (typeof ack !== "function") return
         try {
+          if (role === "SCREEN") {
+            ack({ ok: false, error: "FORBIDDEN" })
+            return
+          }
           const cmd = RequestSongCommand.parse(payload)
           const sess = await config.sessions.findById(sessionId)
           if (!sess) {
@@ -340,6 +385,10 @@ export function setupGateway(config: GatewayConfig): Gateway {
       async (payload: unknown, ack?: (response: RemoveSongAck) => void) => {
         if (typeof ack !== "function") return
         try {
+          if (role === "SCREEN") {
+            ack({ ok: false, error: "FORBIDDEN" })
+            return
+          }
           const cmd = RemoveSongCommand.parse(payload)
           const removed = await config.queue.removeSong({
             sessionId,
