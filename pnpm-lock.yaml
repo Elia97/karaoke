@@ -272,6 +272,21 @@ importers:
       '@tanstack/router-plugin':
         specifier: ^1.132.0
         version: 1.167.35(@tanstack/react-router@1.169.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(vite@8.0.11(@types/node@22.19.18)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.47.1)(yaml@2.8.4))
+      '@workspace/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@workspace/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+      '@workspace/socket-client':
+        specifier: workspace:*
+        version: link:../../packages/socket-client
+      '@workspace/store':
+        specifier: workspace:*
+        version: link:../../packages/store
+      '@workspace/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       lucide-react:
         specifier: ^0.545.0
         version: 0.545.0(react@19.2.4)
@@ -284,6 +299,9 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.2.1
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
     devDependencies:
       '@tailwindcss/typography':
         specifier: ^0.5.16

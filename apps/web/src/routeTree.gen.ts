@@ -9,38 +9,153 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as JoinRouteImport } from './routes/join'
+import { Route as HostRouteImport } from './routes/host'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HostIndexRouteImport } from './routes/host.index'
+import { Route as SessionCodeRouteImport } from './routes/session.$code'
+import { Route as HostLoginRouteImport } from './routes/host.login'
+import { Route as HostCatalogRouteImport } from './routes/host.catalog'
+import { Route as HostSessionsNewRouteImport } from './routes/host.sessions.new'
+import { Route as HostSessionsCodeRouteImport } from './routes/host.sessions.$code'
 
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HostRoute = HostRouteImport.update({
+  id: '/host',
+  path: '/host',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HostIndexRoute = HostIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HostRoute,
+} as any)
+const SessionCodeRoute = SessionCodeRouteImport.update({
+  id: '/session/$code',
+  path: '/session/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HostLoginRoute = HostLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => HostRoute,
+} as any)
+const HostCatalogRoute = HostCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => HostRoute,
+} as any)
+const HostSessionsNewRoute = HostSessionsNewRouteImport.update({
+  id: '/sessions/new',
+  path: '/sessions/new',
+  getParentRoute: () => HostRoute,
+} as any)
+const HostSessionsCodeRoute = HostSessionsCodeRouteImport.update({
+  id: '/sessions/$code',
+  path: '/sessions/$code',
+  getParentRoute: () => HostRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/host': typeof HostRouteWithChildren
+  '/join': typeof JoinRoute
+  '/host/catalog': typeof HostCatalogRoute
+  '/host/login': typeof HostLoginRoute
+  '/session/$code': typeof SessionCodeRoute
+  '/host/': typeof HostIndexRoute
+  '/host/sessions/$code': typeof HostSessionsCodeRoute
+  '/host/sessions/new': typeof HostSessionsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/join': typeof JoinRoute
+  '/host/catalog': typeof HostCatalogRoute
+  '/host/login': typeof HostLoginRoute
+  '/session/$code': typeof SessionCodeRoute
+  '/host': typeof HostIndexRoute
+  '/host/sessions/$code': typeof HostSessionsCodeRoute
+  '/host/sessions/new': typeof HostSessionsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/host': typeof HostRouteWithChildren
+  '/join': typeof JoinRoute
+  '/host/catalog': typeof HostCatalogRoute
+  '/host/login': typeof HostLoginRoute
+  '/session/$code': typeof SessionCodeRoute
+  '/host/': typeof HostIndexRoute
+  '/host/sessions/$code': typeof HostSessionsCodeRoute
+  '/host/sessions/new': typeof HostSessionsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/host'
+    | '/join'
+    | '/host/catalog'
+    | '/host/login'
+    | '/session/$code'
+    | '/host/'
+    | '/host/sessions/$code'
+    | '/host/sessions/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/join'
+    | '/host/catalog'
+    | '/host/login'
+    | '/session/$code'
+    | '/host'
+    | '/host/sessions/$code'
+    | '/host/sessions/new'
+  id:
+    | '__root__'
+    | '/'
+    | '/host'
+    | '/join'
+    | '/host/catalog'
+    | '/host/login'
+    | '/session/$code'
+    | '/host/'
+    | '/host/sessions/$code'
+    | '/host/sessions/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HostRoute: typeof HostRouteWithChildren
+  JoinRoute: typeof JoinRoute
+  SessionCodeRoute: typeof SessionCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/host': {
+      id: '/host'
+      path: '/host'
+      fullPath: '/host'
+      preLoaderRoute: typeof HostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +163,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/host/': {
+      id: '/host/'
+      path: '/'
+      fullPath: '/host/'
+      preLoaderRoute: typeof HostIndexRouteImport
+      parentRoute: typeof HostRoute
+    }
+    '/session/$code': {
+      id: '/session/$code'
+      path: '/session/$code'
+      fullPath: '/session/$code'
+      preLoaderRoute: typeof SessionCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/host/login': {
+      id: '/host/login'
+      path: '/login'
+      fullPath: '/host/login'
+      preLoaderRoute: typeof HostLoginRouteImport
+      parentRoute: typeof HostRoute
+    }
+    '/host/catalog': {
+      id: '/host/catalog'
+      path: '/catalog'
+      fullPath: '/host/catalog'
+      preLoaderRoute: typeof HostCatalogRouteImport
+      parentRoute: typeof HostRoute
+    }
+    '/host/sessions/new': {
+      id: '/host/sessions/new'
+      path: '/sessions/new'
+      fullPath: '/host/sessions/new'
+      preLoaderRoute: typeof HostSessionsNewRouteImport
+      parentRoute: typeof HostRoute
+    }
+    '/host/sessions/$code': {
+      id: '/host/sessions/$code'
+      path: '/sessions/$code'
+      fullPath: '/host/sessions/$code'
+      preLoaderRoute: typeof HostSessionsCodeRouteImport
+      parentRoute: typeof HostRoute
+    }
   }
 }
 
+interface HostRouteChildren {
+  HostCatalogRoute: typeof HostCatalogRoute
+  HostLoginRoute: typeof HostLoginRoute
+  HostIndexRoute: typeof HostIndexRoute
+  HostSessionsCodeRoute: typeof HostSessionsCodeRoute
+  HostSessionsNewRoute: typeof HostSessionsNewRoute
+}
+
+const HostRouteChildren: HostRouteChildren = {
+  HostCatalogRoute: HostCatalogRoute,
+  HostLoginRoute: HostLoginRoute,
+  HostIndexRoute: HostIndexRoute,
+  HostSessionsCodeRoute: HostSessionsCodeRoute,
+  HostSessionsNewRoute: HostSessionsNewRoute,
+}
+
+const HostRouteWithChildren = HostRoute._addFileChildren(HostRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HostRoute: HostRouteWithChildren,
+  JoinRoute: JoinRoute,
+  SessionCodeRoute: SessionCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
