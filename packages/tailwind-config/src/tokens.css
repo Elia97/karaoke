@@ -1,0 +1,6 @@
+/* Design tokens condivisi tra apps/web e apps/screen (Tailwind v4 @theme).
+ * Apps mobile (NativeWind) avra un porting separato in M8.
+ * Tokens popolati progressivamente nelle prossime milestone. */
+@theme {
+  /* placeholder */
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@workspace/protocol",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./commands": "./src/commands.ts",
+    "./events": "./src/events.ts",
+    "./domain": "./src/domain.ts",
+    "./errors": "./src/errors.ts",
+    "./version": "./src/version.ts",
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
