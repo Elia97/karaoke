@@ -8,7 +8,8 @@
     "start": "bun src/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings 0",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
@@ -16,6 +17,7 @@
     "@workspace/db": "workspace:*",
     "@workspace/protocol": "workspace:*",
     "drizzle-orm": "^0.36.0",
+    "fast-xml-parser": "^4.5.1",
     "hono": "^4.6.14",
     "socket.io": "^4.8.1",
     "zod": "^4.0.0"
@@ -25,6 +27,7 @@
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "^9.39.3",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.1.5"
   }
 }

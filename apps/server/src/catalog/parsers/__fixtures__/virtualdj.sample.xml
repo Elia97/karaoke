@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VirtualDJ_Database Version="2024">
+  <Song FilePath="C:/Music/Karaoke/queen-bohemian-rhapsody.mp3">
+    <Tags Author="Queen" Title="Bohemian Rhapsody" Album="A Night at the Opera"/>
+    <Infos SongLength="354"/>
+  </Song>
+  <Song FilePath="/home/dj/karaoke/lucio_battisti-il_mio_canto_libero.mp3">
+    <Tags Author="Lucio Battisti" Title="Il mio canto libero"/>
+    <Infos SongLength="248"/>
+  </Song>
+  <Song FilePath="D:/karaoke/whitney-houston-i-will-always-love-you.m4a">
+    <Tags Author="Whitney Houston" Title="I Will Always Love You"/>
+    <Infos SongLength="273"/>
+  </Song>
+  <Song FilePath="C:/Music/no-tags.mp3">
+    <Tags Author="" Title=""/>
+    <Infos SongLength="0"/>
+  </Song>
+  <Song FilePath="C:/Music/missing-author.mp3">
+    <Tags Title="Solo Title"/>
+    <Infos SongLength="100"/>
+  </Song>
+</VirtualDJ_Database>

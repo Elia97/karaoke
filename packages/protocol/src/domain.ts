@@ -48,6 +48,19 @@ export type ParticipantDto = z.infer<typeof ParticipantDto>
 export const QueueItemSource = z.enum(["catalog", "free_text"])
 export type QueueItemSource = z.infer<typeof QueueItemSource>
 
+export const LyricsSource = z.enum(["lrclib", "manual"])
+export type LyricsSource = z.infer<typeof LyricsSource>
+
+export const CatalogTrackDto = z.object({
+  id: z.string(),
+  ownerId: z.string(),
+  title: z.string(),
+  artist: z.string(),
+  filename: z.string(),
+  durationSeconds: z.number().int().nullable(),
+})
+export type CatalogTrackDto = z.infer<typeof CatalogTrackDto>
+
 export const QueueItemDto = z.object({
   id: z.string(),
   sessionId: z.string(),

@@ -1,0 +1,19 @@
+[
+  {
+    "title": "Bohemian Rhapsody",
+    "artist": "Queen",
+    "filename": "queen-bohemian-rhapsody.mp3",
+    "duration": 354
+  },
+  {
+    "title": "Il mio canto libero",
+    "artist": "Lucio Battisti",
+    "filename": "lucio_battisti-il_mio_canto_libero.mp3",
+    "durationSeconds": 248
+  },
+  {
+    "title": "I Will Always Love You",
+    "artist": "Whitney Houston",
+    "filename": "whitney-houston-i-will-always-love-you.m4a"
+  }
+]
