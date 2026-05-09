@@ -9,6 +9,8 @@ import { createSessionsController } from "./http/sessions.controller"
 import { createCatalogService } from "./catalog/catalog.service"
 import { createCatalogController } from "./http/catalog.controller"
 import { createQueueService } from "./queue/queue.service"
+import { createPendingActionsService } from "./lifecycle/pending-actions.service"
+import { createScheduler } from "./lifecycle/scheduler"
 
 const databaseUrl = requireEnv("DATABASE_URL")
 const googleClientId = requireEnv("GOOGLE_CLIENT_ID")
@@ -29,6 +31,7 @@ const auth = createAuth({
 const sessions = createSessionService(db)
 const catalog = createCatalogService(db)
 const queue = createQueueService(db)
+const pendingActions = createPendingActionsService(db)
 
 const app = new Hono()
 app.get("/", (c) => c.text("Karaoke server"))
@@ -51,14 +54,21 @@ const io = new SocketIOServer(httpServer, {
   cors: { origin: corsOrigin, credentials: true },
 })
 
-setupGateway({
+const gateway = setupGateway({
   io,
   auth,
   sessions,
   catalog,
   queue,
+  pendingActions,
   participantTokenSecret: authSecret,
 })
+
+const scheduler = createScheduler({
+  pendingActions,
+  onAction: gateway.executePendingAction,
+})
+scheduler.start()
 
 function requireEnv(name: string): string {
   const value = process.env[name]

@@ -51,6 +51,40 @@ export const PrepareEvent = z.object({
 })
 export type PrepareEvent = z.infer<typeof PrepareEvent>
 
+export const HostDisconnectedEvent = z.object({
+  type: z.literal("hostDisconnected"),
+  reconnectDeadlineMs: z.number(),
+  reconnectWindowSeconds: z.number().int(),
+})
+export type HostDisconnectedEvent = z.infer<typeof HostDisconnectedEvent>
+
+export const HostReconnectedEvent = z.object({
+  type: z.literal("hostReconnected"),
+})
+export type HostReconnectedEvent = z.infer<typeof HostReconnectedEvent>
+
+export const SessionPausedEvent = z.object({
+  type: z.literal("sessionPaused"),
+  session: KaraokeSessionDto,
+})
+export type SessionPausedEvent = z.infer<typeof SessionPausedEvent>
+
+export const SessionResumedEvent = z.object({
+  type: z.literal("sessionResumed"),
+  session: KaraokeSessionDto,
+})
+export type SessionResumedEvent = z.infer<typeof SessionResumedEvent>
+
+export const SessionEndReason = z.enum(["host_timeout", "manual", "host_left"])
+export type SessionEndReason = z.infer<typeof SessionEndReason>
+
+export const SessionEndedEvent = z.object({
+  type: z.literal("sessionEnded"),
+  session: KaraokeSessionDto,
+  reason: SessionEndReason,
+})
+export type SessionEndedEvent = z.infer<typeof SessionEndedEvent>
+
 export const ServerEvent = z.discriminatedUnion("type", [
   WelcomeEvent,
   UserJoinedEvent,
@@ -58,6 +92,11 @@ export const ServerEvent = z.discriminatedUnion("type", [
   QueueUpdatedEvent,
   NowPlayingEvent,
   PrepareEvent,
+  HostDisconnectedEvent,
+  HostReconnectedEvent,
+  SessionPausedEvent,
+  SessionResumedEvent,
+  SessionEndedEvent,
   ErrorEvent,
 ])
 export type ServerEvent = z.infer<typeof ServerEvent>

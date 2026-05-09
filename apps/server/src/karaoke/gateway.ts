@@ -4,9 +4,15 @@ import type { Auth } from "@workspace/auth/server"
 import { JoinHandshake } from "@workspace/protocol/handshake"
 import { PROTOCOL_VERSION } from "@workspace/protocol/version"
 import type {
+  HostDisconnectedEvent,
+  HostReconnectedEvent,
   NowPlayingEvent,
   PrepareEvent,
   QueueUpdatedEvent,
+  SessionEndedEvent,
+  SessionEndReason,
+  SessionPausedEvent,
+  SessionResumedEvent,
   UserJoinedEvent,
   UserLeftEvent,
   WelcomeEvent,
@@ -22,6 +28,7 @@ import type {
   RemoveSongAck,
   RequestSongAck,
   SearchTracksAck,
+  SessionLifecycleAck,
 } from "@workspace/protocol/commands"
 import type { QueueItemDto } from "@workspace/protocol/domain"
 import { createParticipantToken, verifyParticipantToken } from "../utils/token"
@@ -30,6 +37,10 @@ import type { SessionService } from "./session.service"
 import type { CatalogService } from "../catalog/catalog.service"
 import type { QueueService } from "../queue/queue.service"
 import { ActiveSongError, ForbiddenError } from "../queue/queue.service"
+import type {
+  PendingActionDto,
+  PendingActionsService,
+} from "../lifecycle/pending-actions.service"
 
 export type GatewayConfig = {
   io: Server
@@ -37,7 +48,13 @@ export type GatewayConfig = {
   sessions: SessionService
   catalog: CatalogService
   queue: QueueService
+  pendingActions: PendingActionsService
   participantTokenSecret: string
+  hostReconnectWindowSeconds?: number
+}
+
+export type Gateway = {
+  executePendingAction: (action: PendingActionDto) => Promise<void>
 }
 
 type SocketData = {
@@ -47,8 +64,9 @@ type SocketData = {
   userId: string | null
 }
 
-export function setupGateway(config: GatewayConfig): void {
+export function setupGateway(config: GatewayConfig): Gateway {
   const ns = config.io.of("/karaoke")
+  const hostReconnectWindowSeconds = config.hostReconnectWindowSeconds ?? 300
 
   ns.use(async (socket, next) => {
     try {
@@ -150,11 +168,37 @@ export function setupGateway(config: GatewayConfig): void {
     const data = socket.data as SocketData
     const { participantId, sessionId, role } = data
 
-    const sessionDto = await config.sessions.findById(sessionId)
+    // Force-disconnect any other socket for the same participant (race protection on rejoin)
+    const allSockets = await ns.fetchSockets()
+    for (const other of allSockets) {
+      if (
+        other.id !== socket.id &&
+        (other.data as SocketData).participantId === participantId
+      ) {
+        other.disconnect(true)
+      }
+    }
+
+    let sessionDto = await config.sessions.findById(sessionId)
     if (!sessionDto) {
       socket.disconnect(true)
       return
     }
+
+    // Host reconnect: cancel pending END_SESSION timeout + resume if paused
+    let hostJustReconnected = false
+    if (role === "HOST") {
+      const cancelled = await config.pendingActions.cancelBySession({
+        sessionId,
+        type: "END_SESSION_ON_HOST_TIMEOUT",
+      })
+      if (cancelled > 0) hostJustReconnected = true
+      if (sessionDto.status === "PAUSED") {
+        const resumed = await config.sessions.resumeSession(sessionId)
+        if (resumed) sessionDto = resumed
+      }
+    }
+
     const participants = await config.sessions.listParticipants(sessionId)
     const room = getOrCreateRoom(sessionId, () => ({
       session: sessionDto,
@@ -199,8 +243,21 @@ export function setupGateway(config: GatewayConfig): void {
     }
     socket.emit("welcome", welcome)
 
-    const userJoined: UserJoinedEvent = { type: "userJoined", participant: me }
-    socket.to(roomName(sessionId)).emit("userJoined", userJoined)
+    if (hostJustReconnected) {
+      const hostReconnected: HostReconnectedEvent = { type: "hostReconnected" }
+      ns.to(roomName(sessionId)).emit("hostReconnected", hostReconnected)
+      const sessionResumed: SessionResumedEvent = {
+        type: "sessionResumed",
+        session: room.session,
+      }
+      socket.to(roomName(sessionId)).emit("sessionResumed", sessionResumed)
+    } else {
+      const userJoined: UserJoinedEvent = {
+        type: "userJoined",
+        participant: me,
+      }
+      socket.to(roomName(sessionId)).emit("userJoined", userJoined)
+    }
 
     socket.on(
       "searchTracks",
@@ -356,6 +413,96 @@ export function setupGateway(config: GatewayConfig): void {
       }
     )
 
+    socket.on(
+      "pauseSession",
+      async (
+        _payload: unknown,
+        ack?: (response: SessionLifecycleAck) => void
+      ) => {
+        if (typeof ack !== "function") return
+        try {
+          if (role !== "HOST") {
+            ack({ ok: false, error: "FORBIDDEN" })
+            return
+          }
+          const updated = await config.sessions.pauseSession(sessionId)
+          if (!updated) {
+            ack({ ok: false, error: "SESSION_NOT_FOUND" })
+            return
+          }
+          ack({ ok: true })
+          const evt: SessionPausedEvent = {
+            type: "sessionPaused",
+            session: updated,
+          }
+          ns.to(roomName(sessionId)).emit("sessionPaused", evt)
+        } catch (e) {
+          console.error("[gateway] pauseSession error", e)
+          ack({ ok: false, error: "INTERNAL" })
+        }
+      }
+    )
+
+    socket.on(
+      "resumeSession",
+      async (
+        _payload: unknown,
+        ack?: (response: SessionLifecycleAck) => void
+      ) => {
+        if (typeof ack !== "function") return
+        try {
+          if (role !== "HOST") {
+            ack({ ok: false, error: "FORBIDDEN" })
+            return
+          }
+          const updated = await config.sessions.resumeSession(sessionId)
+          if (!updated) {
+            ack({ ok: false, error: "SESSION_NOT_FOUND" })
+            return
+          }
+          ack({ ok: true })
+          const evt: SessionResumedEvent = {
+            type: "sessionResumed",
+            session: updated,
+          }
+          ns.to(roomName(sessionId)).emit("sessionResumed", evt)
+        } catch (e) {
+          console.error("[gateway] resumeSession error", e)
+          ack({ ok: false, error: "INTERNAL" })
+        }
+      }
+    )
+
+    socket.on(
+      "endSession",
+      async (
+        _payload: unknown,
+        ack?: (response: SessionLifecycleAck) => void
+      ) => {
+        if (typeof ack !== "function") return
+        try {
+          if (role !== "HOST") {
+            ack({ ok: false, error: "FORBIDDEN" })
+            return
+          }
+          await config.pendingActions.cancelBySession({
+            sessionId,
+            type: "END_SESSION_ON_HOST_TIMEOUT",
+          })
+          const updated = await config.sessions.endSession(sessionId)
+          if (!updated) {
+            ack({ ok: false, error: "SESSION_NOT_FOUND" })
+            return
+          }
+          ack({ ok: true })
+          await emitSessionEnded(sessionId, updated, "manual")
+        } catch (e) {
+          console.error("[gateway] endSession error", e)
+          ack({ ok: false, error: "INTERNAL" })
+        }
+      }
+    )
+
     socket.on("disconnect", async () => {
       try {
         const r = getRoom(sessionId)
@@ -364,16 +511,47 @@ export function setupGateway(config: GatewayConfig): void {
         if (!p) return
         r.participants.set(participantId, { ...p, isConnected: false })
         await config.sessions.markParticipantDisconnected(participantId)
-        const userLeft: UserLeftEvent = {
-          type: "userLeft",
-          participantId,
-          reason: "disconnected",
+
+        if (role === "HOST") {
+          const paused = await config.sessions.pauseSession(sessionId)
+          if (paused) {
+            r.session = paused
+            const executeAt = new Date(
+              Date.now() + hostReconnectWindowSeconds * 1000
+            )
+            await config.pendingActions.schedule({
+              type: "END_SESSION_ON_HOST_TIMEOUT",
+              sessionId,
+              executeAt,
+            })
+            const hostDisconnected: HostDisconnectedEvent = {
+              type: "hostDisconnected",
+              reconnectDeadlineMs: executeAt.getTime(),
+              reconnectWindowSeconds: hostReconnectWindowSeconds,
+            }
+            ns.to(roomName(sessionId)).emit(
+              "hostDisconnected",
+              hostDisconnected
+            )
+            const sessionPaused: SessionPausedEvent = {
+              type: "sessionPaused",
+              session: paused,
+            }
+            ns.to(roomName(sessionId)).emit("sessionPaused", sessionPaused)
+          }
+        } else {
+          const userLeft: UserLeftEvent = {
+            type: "userLeft",
+            participantId,
+            reason: "disconnected",
+          }
+          ns.to(roomName(sessionId)).emit("userLeft", userLeft)
         }
-        ns.to(roomName(sessionId)).emit("userLeft", userLeft)
+
         const stillConnected = [...r.participants.values()].some(
           (x) => x.isConnected
         )
-        if (!stillConnected) deleteRoom(sessionId)
+        if (!stillConnected && role !== "HOST") deleteRoom(sessionId)
       } catch (e) {
         console.error("[gateway] disconnect error", e)
       }
@@ -403,6 +581,31 @@ export function setupGateway(config: GatewayConfig): void {
     }
     ns.to(roomName(sessionId)).emit("queueUpdated", event)
   }
+
+  async function emitSessionEnded(
+    sessionId: string,
+    session: SessionEndedEvent["session"],
+    reason: SessionEndReason
+  ): Promise<void> {
+    const evt: SessionEndedEvent = {
+      type: "sessionEnded",
+      session,
+      reason,
+    }
+    ns.to(roomName(sessionId)).emit("sessionEnded", evt)
+    deleteRoom(sessionId)
+    const sockets = await ns.in(roomName(sessionId)).fetchSockets()
+    for (const s of sockets) s.disconnect(true)
+  }
+
+  async function executePendingAction(action: PendingActionDto): Promise<void> {
+    if (action.type === "END_SESSION_ON_HOST_TIMEOUT") {
+      const ended = await config.sessions.endSession(action.sessionId)
+      if (ended) await emitSessionEnded(action.sessionId, ended, "host_timeout")
+    }
+  }
+
+  return { executePendingAction }
 }
 
 function roomName(sessionId: string): string {

@@ -30,11 +30,29 @@ export const NextSongCommand = z.object({
 })
 export type NextSongCommand = z.infer<typeof NextSongCommand>
 
+export const PauseSessionCommand = z.object({
+  type: z.literal("pauseSession"),
+})
+export type PauseSessionCommand = z.infer<typeof PauseSessionCommand>
+
+export const ResumeSessionCommand = z.object({
+  type: z.literal("resumeSession"),
+})
+export type ResumeSessionCommand = z.infer<typeof ResumeSessionCommand>
+
+export const EndSessionCommand = z.object({
+  type: z.literal("endSession"),
+})
+export type EndSessionCommand = z.infer<typeof EndSessionCommand>
+
 export const ClientCommand = z.discriminatedUnion("type", [
   SearchTracksCommand,
   RequestSongCommand,
   RemoveSongCommand,
   NextSongCommand,
+  PauseSessionCommand,
+  ResumeSessionCommand,
+  EndSessionCommand,
 ])
 export type ClientCommand = z.infer<typeof ClientCommand>
 
@@ -61,3 +79,9 @@ export const NextSongAck = z.discriminatedUnion("ok", [
   z.object({ ok: z.literal(false), error: ErrorCode }),
 ])
 export type NextSongAck = z.infer<typeof NextSongAck>
+
+export const SessionLifecycleAck = z.discriminatedUnion("ok", [
+  z.object({ ok: z.literal(true) }),
+  z.object({ ok: z.literal(false), error: ErrorCode }),
+])
+export type SessionLifecycleAck = z.infer<typeof SessionLifecycleAck>
