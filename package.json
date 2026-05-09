@@ -7,13 +7,22 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "turbo format",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{json,md,yaml,yml,css}": "prettier --write",
+    "*.{ts,tsx,js,mjs,cjs}": "prettier --write",
+    "{apps,packages/ui}/**/*.{ts,tsx,js,mjs,cjs}": "eslint --fix"
   },
   "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "eslint": "^9.39.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.7.4",
-    "turbo": "^2.9.12",
-    "typescript": "5.9.3"
+    "turbo": "^2.9.12"
   },
   "packageManager": "pnpm@10.33.4+sha512.1c67b3b359b2d408119ba1ed289f34b8fc3c6873412bec6fd264fbdc82489e510fcbecb9ce9d22dae7f3b76269d8441046014bdca53b9979cd7a561ad631b800",
   "engines": {

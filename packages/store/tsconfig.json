@@ -1,11 +1,4 @@
 {
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "lib": ["ESNext", "DOM"],
-    "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,
-    "jsx": "react-jsx",
-    "noEmit": true
-  },
+  "extends": "@workspace/typescript-config/react-app.json",
   "include": ["src"]
 }

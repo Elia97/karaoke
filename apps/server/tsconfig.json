@@ -1,11 +1,4 @@
 {
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "lib": ["ESNext"],
-    "types": ["bun"],
-    "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,
-    "noEmit": true
-  },
+  "extends": "@workspace/typescript-config/bun-app.json",
   "include": ["src"]
 }

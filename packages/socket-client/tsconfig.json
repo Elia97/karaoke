@@ -1,10 +1,7 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "@workspace/typescript-config/library.json",
   "compilerOptions": {
-    "lib": ["ESNext", "DOM"],
-    "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,
-    "noEmit": true
+    "lib": ["ESNext", "DOM"]
   },
   "include": ["src"]
 }
