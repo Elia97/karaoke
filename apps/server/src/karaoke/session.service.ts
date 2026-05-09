@@ -108,6 +108,31 @@ export function createSessionService(db: DbClient) {
       .where(eq(schema.participant.id, participantId))
   }
 
+  async function setStatus(
+    id: string,
+    status: KaraokeSessionDto["status"]
+  ): Promise<KaraokeSessionDto | null> {
+    const now = new Date()
+    const [row] = await db
+      .update(schema.karaokeSession)
+      .set({ status, lastActivityAt: now })
+      .where(eq(schema.karaokeSession.id, id))
+      .returning()
+    return row ? rowToSessionDto(row) : null
+  }
+
+  async function pauseSession(id: string): Promise<KaraokeSessionDto | null> {
+    return setStatus(id, "PAUSED")
+  }
+
+  async function resumeSession(id: string): Promise<KaraokeSessionDto | null> {
+    return setStatus(id, "ACTIVE")
+  }
+
+  async function endSession(id: string): Promise<KaraokeSessionDto | null> {
+    return setStatus(id, "ENDED")
+  }
+
   async function generateUniqueSessionCode(): Promise<string> {
     for (let attempt = 0; attempt < 10; attempt++) {
       const code = generateSessionCode()
@@ -128,6 +153,9 @@ export function createSessionService(db: DbClient) {
     listParticipants,
     upsertParticipant,
     markParticipantDisconnected,
+    pauseSession,
+    resumeSession,
+    endSession,
   }
 }
 

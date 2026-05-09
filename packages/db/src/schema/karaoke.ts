@@ -38,6 +38,10 @@ export const queueItemSource = pgEnum("queue_item_source", [
   "free_text",
 ])
 
+export const pendingActionType = pgEnum("pending_action_type", [
+  "END_SESSION_ON_HOST_TIMEOUT",
+])
+
 export type KaraokeSessionConfig = {
   maxParticipants: number
   prepareTimeSeconds: number
@@ -130,5 +134,26 @@ export const queueItem = pgTable(
   (table) => [
     index("queue_item_session_idx").on(table.sessionId),
     index("queue_item_session_status_idx").on(table.sessionId, table.status),
+  ]
+)
+
+export const pendingAction = pgTable(
+  "pending_action",
+  {
+    id: text("id").primaryKey(),
+    type: pendingActionType("type").notNull(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => karaokeSession.id, { onDelete: "cascade" }),
+    executeAt: timestamp("execute_at").notNull(),
+    payload: jsonb("payload")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("pending_action_execute_idx").on(table.executeAt),
+    index("pending_action_session_idx").on(table.sessionId),
   ]
 )
