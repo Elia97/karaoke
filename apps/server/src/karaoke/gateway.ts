@@ -8,14 +8,18 @@ import type {
   WelcomeEvent,
 } from "@workspace/protocol/events"
 import type { ErrorCode } from "@workspace/protocol/errors"
+import { SearchTracksCommand } from "@workspace/protocol/commands"
+import type { SearchTracksAck } from "@workspace/protocol/commands"
 import { createParticipantToken, verifyParticipantToken } from "../utils/token"
 import { deleteRoom, getOrCreateRoom, getRoom } from "./state"
 import type { SessionService } from "./session.service"
+import type { CatalogService } from "../catalog/catalog.service"
 
 export type GatewayConfig = {
   io: Server
   auth: Auth
   sessions: SessionService
+  catalog: CatalogService
   participantTokenSecret: string
 }
 
@@ -174,6 +178,30 @@ export function setupGateway(config: GatewayConfig): void {
 
     const userJoined: UserJoinedEvent = { type: "userJoined", participant: me }
     socket.to(roomName(sessionId)).emit("userJoined", userJoined)
+
+    socket.on(
+      "searchTracks",
+      async (payload: unknown, ack?: (response: SearchTracksAck) => void) => {
+        if (typeof ack !== "function") return
+        try {
+          const cmd = SearchTracksCommand.parse(payload)
+          const session = await config.sessions.findById(sessionId)
+          if (!session) {
+            ack({ ok: false, error: "SESSION_NOT_FOUND" })
+            return
+          }
+          const tracks = await config.catalog.searchTracks({
+            ownerId: session.hostId,
+            query: cmd.query,
+            limit: cmd.limit,
+          })
+          ack({ ok: true, tracks })
+        } catch (e) {
+          console.error("[gateway] searchTracks error", e)
+          ack({ ok: false, error: "INTERNAL" })
+        }
+      }
+    )
 
     socket.on("disconnect", async () => {
       try {

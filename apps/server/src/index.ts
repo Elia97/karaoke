@@ -6,6 +6,8 @@ import { createAuth } from "@workspace/auth/server"
 import { createSessionService } from "./karaoke/session.service"
 import { setupGateway } from "./karaoke/gateway"
 import { createSessionsController } from "./http/sessions.controller"
+import { createCatalogService } from "./catalog/catalog.service"
+import { createCatalogController } from "./http/catalog.controller"
 
 const databaseUrl = requireEnv("DATABASE_URL")
 const googleClientId = requireEnv("GOOGLE_CLIENT_ID")
@@ -24,12 +26,14 @@ const auth = createAuth({
   secret: authSecret,
 })
 const sessions = createSessionService(db)
+const catalog = createCatalogService(db)
 
 const app = new Hono()
 app.get("/", (c) => c.text("Karaoke server"))
 app.get("/health", (c) => c.json({ status: "ok", uptime: process.uptime() }))
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
 app.route("/api/sessions", createSessionsController({ auth, sessions }))
+app.route("/api/catalog", createCatalogController({ auth, catalog }))
 
 const httpServer = serve(
   {
@@ -49,6 +53,7 @@ setupGateway({
   io,
   auth,
   sessions,
+  catalog,
   participantTokenSecret: authSecret,
 })
 

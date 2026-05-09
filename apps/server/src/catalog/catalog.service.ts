@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import type { DbClient } from "@workspace/db/client"
 import * as schema from "@workspace/db/schema"
 import type { CatalogTrackDto } from "@workspace/protocol/domain"
@@ -43,7 +43,31 @@ export function createCatalogService(db: DbClient) {
     return row?.count ?? 0
   }
 
-  return { bulkInsertTracks, clearByOwner, countByOwner }
+  async function searchTracks(input: {
+    ownerId: string
+    query: string
+    limit: number
+  }): Promise<CatalogTrackDto[]> {
+    const normalized = input.query.trim()
+    if (!normalized) return []
+    const tsquery = sql`plainto_tsquery('simple', ${normalized})`
+    const rows = await db
+      .select()
+      .from(schema.catalogTrack)
+      .where(
+        and(
+          eq(schema.catalogTrack.ownerId, input.ownerId),
+          sql`${schema.catalogTrack.searchVector} @@ ${tsquery}`
+        )
+      )
+      .orderBy(
+        sql`ts_rank_cd(${schema.catalogTrack.searchVector}, ${tsquery}) DESC`
+      )
+      .limit(input.limit)
+    return rows.map(rowToCatalogTrackDto)
+  }
+
+  return { bulkInsertTracks, clearByOwner, countByOwner, searchTracks }
 }
 
 export function rowToCatalogTrackDto(
