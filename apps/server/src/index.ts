@@ -8,6 +8,7 @@ import { setupGateway } from "./karaoke/gateway"
 import { createSessionsController } from "./http/sessions.controller"
 import { createCatalogService } from "./catalog/catalog.service"
 import { createCatalogController } from "./http/catalog.controller"
+import { createQueueService } from "./queue/queue.service"
 
 const databaseUrl = requireEnv("DATABASE_URL")
 const googleClientId = requireEnv("GOOGLE_CLIENT_ID")
@@ -27,6 +28,7 @@ const auth = createAuth({
 })
 const sessions = createSessionService(db)
 const catalog = createCatalogService(db)
+const queue = createQueueService(db)
 
 const app = new Hono()
 app.get("/", (c) => c.text("Karaoke server"))
@@ -54,6 +56,7 @@ setupGateway({
   auth,
   sessions,
   catalog,
+  queue,
   participantTokenSecret: authSecret,
 })
 

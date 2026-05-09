@@ -1,25 +1,42 @@
 import type { Server } from "socket.io"
+import { z } from "zod"
 import type { Auth } from "@workspace/auth/server"
 import { JoinHandshake } from "@workspace/protocol/handshake"
 import { PROTOCOL_VERSION } from "@workspace/protocol/version"
 import type {
+  NowPlayingEvent,
+  PrepareEvent,
+  QueueUpdatedEvent,
   UserJoinedEvent,
   UserLeftEvent,
   WelcomeEvent,
 } from "@workspace/protocol/events"
 import type { ErrorCode } from "@workspace/protocol/errors"
-import { SearchTracksCommand } from "@workspace/protocol/commands"
-import type { SearchTracksAck } from "@workspace/protocol/commands"
+import {
+  RemoveSongCommand,
+  RequestSongCommand,
+  SearchTracksCommand,
+} from "@workspace/protocol/commands"
+import type {
+  NextSongAck,
+  RemoveSongAck,
+  RequestSongAck,
+  SearchTracksAck,
+} from "@workspace/protocol/commands"
+import type { QueueItemDto } from "@workspace/protocol/domain"
 import { createParticipantToken, verifyParticipantToken } from "../utils/token"
 import { deleteRoom, getOrCreateRoom, getRoom } from "./state"
 import type { SessionService } from "./session.service"
 import type { CatalogService } from "../catalog/catalog.service"
+import type { QueueService } from "../queue/queue.service"
+import { ActiveSongError, ForbiddenError } from "../queue/queue.service"
 
 export type GatewayConfig = {
   io: Server
   auth: Auth
   sessions: SessionService
   catalog: CatalogService
+  queue: QueueService
   participantTokenSecret: string
 }
 
@@ -154,6 +171,12 @@ export function setupGateway(config: GatewayConfig): void {
       return
     }
 
+    const fullQueue = await config.queue.listBySession(sessionId)
+    room.queue = fullQueue.filter(
+      (q) => q.status !== "COMPLETED" && q.status !== "SKIPPED"
+    )
+    room.currentSong = fullQueue.find((q) => q.status === "PERFORMING") ?? null
+
     socket.join(roomName(sessionId))
 
     const participantToken =
@@ -185,19 +208,149 @@ export function setupGateway(config: GatewayConfig): void {
         if (typeof ack !== "function") return
         try {
           const cmd = SearchTracksCommand.parse(payload)
-          const session = await config.sessions.findById(sessionId)
-          if (!session) {
+          const sess = await config.sessions.findById(sessionId)
+          if (!sess) {
             ack({ ok: false, error: "SESSION_NOT_FOUND" })
             return
           }
           const tracks = await config.catalog.searchTracks({
-            ownerId: session.hostId,
+            ownerId: sess.hostId,
             query: cmd.query,
             limit: cmd.limit,
           })
           ack({ ok: true, tracks })
         } catch (e) {
+          if (e instanceof z.ZodError) {
+            ack({ ok: false, error: "INVALID_PAYLOAD" })
+            return
+          }
           console.error("[gateway] searchTracks error", e)
+          ack({ ok: false, error: "INTERNAL" })
+        }
+      }
+    )
+
+    socket.on(
+      "requestSong",
+      async (payload: unknown, ack?: (response: RequestSongAck) => void) => {
+        if (typeof ack !== "function") return
+        try {
+          const cmd = RequestSongCommand.parse(payload)
+          const sess = await config.sessions.findById(sessionId)
+          if (!sess) {
+            ack({ ok: false, error: "SESSION_NOT_FOUND" })
+            return
+          }
+          if (sess.status === "ENDED") {
+            ack({ ok: false, error: "SESSION_ENDED" })
+            return
+          }
+          const item = await config.queue.requestSong(
+            {
+              sessionId,
+              singerId: participantId,
+              singerNickname: me.nickname,
+              title: cmd.title,
+              artist: cmd.artist ?? null,
+              trackId: cmd.trackId ?? null,
+              filename: cmd.filename ?? null,
+              source: cmd.source,
+            },
+            {
+              allowMultipleSongsPerUser:
+                sess.config.allowMultipleSongsPerUser || role === "HOST",
+            }
+          )
+          ack({ ok: true, item })
+          await broadcastQueueUpdated(sessionId, "added")
+        } catch (e) {
+          if (e instanceof ActiveSongError) {
+            ack({ ok: false, error: "ACTIVE_SONG_EXISTS" })
+            return
+          }
+          if (e instanceof z.ZodError) {
+            ack({ ok: false, error: "INVALID_PAYLOAD" })
+            return
+          }
+          console.error("[gateway] requestSong error", e)
+          ack({ ok: false, error: "INTERNAL" })
+        }
+      }
+    )
+
+    socket.on(
+      "removeSong",
+      async (payload: unknown, ack?: (response: RemoveSongAck) => void) => {
+        if (typeof ack !== "function") return
+        try {
+          const cmd = RemoveSongCommand.parse(payload)
+          const removed = await config.queue.removeSong({
+            sessionId,
+            queueItemId: cmd.queueItemId,
+            requesterParticipantId: participantId,
+            requesterRole: role,
+          })
+          if (!removed) {
+            ack({ ok: false, error: "ITEM_NOT_FOUND" })
+            return
+          }
+          ack({ ok: true })
+          await broadcastQueueUpdated(sessionId, "removed")
+        } catch (e) {
+          if (e instanceof ForbiddenError) {
+            ack({ ok: false, error: "FORBIDDEN" })
+            return
+          }
+          if (e instanceof z.ZodError) {
+            ack({ ok: false, error: "INVALID_PAYLOAD" })
+            return
+          }
+          console.error("[gateway] removeSong error", e)
+          ack({ ok: false, error: "INTERNAL" })
+        }
+      }
+    )
+
+    socket.on(
+      "nextSong",
+      async (_payload: unknown, ack?: (response: NextSongAck) => void) => {
+        if (typeof ack !== "function") return
+        try {
+          if (role !== "HOST") {
+            ack({ ok: false, error: "FORBIDDEN" })
+            return
+          }
+          const sess = await config.sessions.findById(sessionId)
+          if (!sess) {
+            ack({ ok: false, error: "SESSION_NOT_FOUND" })
+            return
+          }
+          if (sess.status === "ENDED") {
+            ack({ ok: false, error: "SESSION_ENDED" })
+            return
+          }
+          const result = await config.queue.advanceQueue(sessionId)
+          ack({ ok: true })
+          if (result.nowPlaying) {
+            const evt: NowPlayingEvent = {
+              type: "nowPlaying",
+              item: result.nowPlaying,
+              nextUp: result.prepare,
+            }
+            ns.to(roomName(sessionId)).emit("nowPlaying", evt)
+          }
+          if (result.prepare) {
+            const evt: PrepareEvent = {
+              type: "prepare",
+              item: result.prepare,
+              message: "You're up next!",
+              secondsUntilTurn: sess.config.prepareTimeSeconds ?? null,
+            }
+            ns.to(roomName(sessionId)).emit("prepare", evt)
+          }
+          await broadcastQueueUpdated(sessionId, "advanced")
+        } catch (e) {
+          console.error("[gateway] nextSong error", e)
           ack({ ok: false, error: "INTERNAL" })
         }
       }
@@ -226,6 +379,30 @@ export function setupGateway(config: GatewayConfig): void {
       }
     })
   })
+
+  async function broadcastQueueUpdated(
+    sessionId: string,
+    changeType: QueueUpdatedEvent["changeType"]
+  ): Promise<void> {
+    const queue = await config.queue.listBySession(sessionId)
+    const active = queue.filter(
+      (q) => q.status !== "COMPLETED" && q.status !== "SKIPPED"
+    )
+    const currentSong: QueueItemDto | null =
+      queue.find((q) => q.status === "PERFORMING") ?? null
+    const room = getRoom(sessionId)
+    if (room) {
+      room.queue = active
+      room.currentSong = currentSong
+    }
+    const event: QueueUpdatedEvent = {
+      type: "queueUpdated",
+      queue: active,
+      currentSong,
+      changeType,
+    }
+    ns.to(roomName(sessionId)).emit("queueUpdated", event)
+  }
 }
 
 function roomName(sessionId: string): string {

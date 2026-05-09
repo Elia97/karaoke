@@ -28,10 +28,36 @@ export const UserLeftEvent = z.object({
 })
 export type UserLeftEvent = z.infer<typeof UserLeftEvent>
 
+export const QueueUpdatedEvent = z.object({
+  type: z.literal("queueUpdated"),
+  queue: z.array(QueueItemDto),
+  currentSong: QueueItemDto.nullable(),
+  changeType: z.enum(["added", "removed", "advanced", "reordered"]),
+})
+export type QueueUpdatedEvent = z.infer<typeof QueueUpdatedEvent>
+
+export const NowPlayingEvent = z.object({
+  type: z.literal("nowPlaying"),
+  item: QueueItemDto,
+  nextUp: QueueItemDto.nullable(),
+})
+export type NowPlayingEvent = z.infer<typeof NowPlayingEvent>
+
+export const PrepareEvent = z.object({
+  type: z.literal("prepare"),
+  item: QueueItemDto,
+  message: z.string(),
+  secondsUntilTurn: z.number().int().nullable(),
+})
+export type PrepareEvent = z.infer<typeof PrepareEvent>
+
 export const ServerEvent = z.discriminatedUnion("type", [
   WelcomeEvent,
   UserJoinedEvent,
   UserLeftEvent,
+  QueueUpdatedEvent,
+  NowPlayingEvent,
+  PrepareEvent,
   ErrorEvent,
 ])
 export type ServerEvent = z.infer<typeof ServerEvent>
