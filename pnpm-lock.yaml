@@ -141,6 +141,18 @@ importers:
       '@tanstack/router-plugin':
         specifier: ^1.132.0
         version: 1.167.35(@tanstack/react-router@1.169.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(vite@8.0.11(@types/node@22.19.18)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.47.1)(yaml@2.8.4))
+      '@workspace/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+      '@workspace/socket-client':
+        specifier: workspace:*
+        version: link:../../packages/socket-client
+      '@workspace/store':
+        specifier: workspace:*
+        version: link:../../packages/store
+      '@workspace/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       lucide-react:
         specifier: ^0.545.0
         version: 0.545.0(react@19.2.4)
@@ -150,9 +162,15 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.4(react@19.2.4)
+      react-qr-code:
+        specifier: ^2.0.15
+        version: 2.0.21(react@19.2.4)
       tailwindcss:
         specifier: ^4.1.18
         version: 4.2.1
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
     devDependencies:
       '@tailwindcss/typography':
         specifier: ^0.5.16
@@ -7067,6 +7085,9 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
+  qr.js@0.0.0:
+    resolution: {integrity: sha512-c4iYnWb+k2E+vYpRimHqSu575b1/wKl4XFeJGpFmrJQz5I88v9aY2czh7s0w36srfCM1sXgC/xpoJz5dJfq+OQ==}
+
   qrcode-terminal@0.11.0:
     resolution: {integrity: sha512-Uu7ii+FQy4Qf82G4xu7ShHhjhGahEpCWc3x8UavY3CTcWV+ufmmCtwkr7ZKsX42jdL0kr1B5FKUeqJvAn51jzQ==}
     hasBin: true
@@ -7198,6 +7219,11 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  react-qr-code@2.0.21:
+    resolution: {integrity: sha512-xaywjo0eaF4S3LOz6ns5eoPbM2E+q9HYl4VATYpxK4bBniOhQ9noY2RJ9G4SnZFhUwzx63FUT6KdHzfKgUwyuQ==}
+    peerDependencies:
+      react: '*'
 
   react-refresh@0.14.2:
     resolution: {integrity: sha512-jCvmsr+1IUSMUyzOkRcvnVbX3ZYC6g9TDrDbFuFmRDq7PD4yaGbLKNQL6k2jnArV8hjYxh7hVhAZB6s9HDGpZA==}
@@ -15797,6 +15823,8 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  qr.js@0.0.0: {}
+
   qrcode-terminal@0.11.0: {}
 
   qs@6.15.1:
@@ -16041,6 +16069,12 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  react-qr-code@2.0.21(react@19.2.4):
+    dependencies:
+      prop-types: 15.8.1
+      qr.js: 0.0.0
+      react: 19.2.4
 
   react-refresh@0.14.2: {}
 
