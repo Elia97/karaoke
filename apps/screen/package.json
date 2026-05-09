@@ -1,12 +1,12 @@
 {
-  "name": "@workspace/web",
+  "name": "@workspace/screen",
   "private": true,
   "type": "module",
   "imports": {
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 5173",
+    "dev": "vite dev --port 5174",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
