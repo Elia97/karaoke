@@ -1,13 +1,19 @@
-import { Hono } from 'hono'
-import { createDbClient } from '@workspace/db/client'
-import { createAuth } from '@workspace/auth/server'
+import { serve } from "@hono/node-server"
+import { Hono } from "hono"
+import { Server as SocketIOServer } from "socket.io"
+import { createDbClient } from "@workspace/db/client"
+import { createAuth } from "@workspace/auth/server"
+import { createSessionService } from "./karaoke/session.service"
+import { setupGateway } from "./karaoke/gateway"
+import { createSessionsController } from "./http/sessions.controller"
 
-const databaseUrl = requireEnv('DATABASE_URL')
-const googleClientId = requireEnv('GOOGLE_CLIENT_ID')
-const googleClientSecret = requireEnv('GOOGLE_CLIENT_SECRET')
-const authSecret = requireEnv('BETTER_AUTH_SECRET')
-const baseUrl = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
+const databaseUrl = requireEnv("DATABASE_URL")
+const googleClientId = requireEnv("GOOGLE_CLIENT_ID")
+const googleClientSecret = requireEnv("GOOGLE_CLIENT_SECRET")
+const authSecret = requireEnv("BETTER_AUTH_SECRET")
+const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000"
 const port = Number(process.env.PORT) || 3000
+const corsOrigin = process.env.CORS_ORIGIN ?? "*"
 
 const db = createDbClient(databaseUrl)
 const auth = createAuth({
@@ -17,27 +23,37 @@ const auth = createAuth({
   baseUrl,
   secret: authSecret,
 })
+const sessions = createSessionService(db)
 
 const app = new Hono()
+app.get("/", (c) => c.text("Karaoke server"))
+app.get("/health", (c) => c.json({ status: "ok", uptime: process.uptime() }))
+app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
+app.route("/api/sessions", createSessionsController({ auth, sessions }))
 
-app.get('/', (c) => c.text('Karaoke server'))
-app.get('/health', (c) =>
-  c.json({ status: 'ok', uptime: process.uptime() }),
+const httpServer = serve(
+  {
+    fetch: app.fetch,
+    port,
+  },
+  (info) => {
+    console.log(`🎤 Karaoke server listening on http://localhost:${info.port}`)
+  }
 )
 
-app.on(['POST', 'GET'], '/api/auth/*', (c) => auth.handler(c.req.raw))
+const io = new SocketIOServer(httpServer, {
+  cors: { origin: corsOrigin, credentials: true },
+})
 
-console.log(`🎤 Karaoke server listening on http://localhost:${port}`)
-
-export default {
-  port,
-  fetch: app.fetch,
-}
+setupGateway({
+  io,
+  auth,
+  sessions,
+  participantTokenSecret: authSecret,
+})
 
 function requireEnv(name: string): string {
   const value = process.env[name]
-  if (!value) {
-    throw new Error(`Missing required env var: ${name}`)
-  }
+  if (!value) throw new Error(`Missing required env var: ${name}`)
   return value
 }

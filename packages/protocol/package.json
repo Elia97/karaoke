@@ -9,6 +9,7 @@
     "./events": "./src/events.ts",
     "./domain": "./src/domain.ts",
     "./errors": "./src/errors.ts",
+    "./handshake": "./src/handshake.ts",
     "./version": "./src/version.ts",
     "./server": "./src/server.ts",
     "./client": "./src/client.ts"
