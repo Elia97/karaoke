@@ -190,6 +190,15 @@ importers:
 
   apps/server:
     dependencies:
+      '@workspace/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@workspace/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
       hono:
         specifier: ^4.6.14
         version: 4.12.18
@@ -288,6 +297,9 @@ importers:
 
   packages/auth:
     dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../db
       better-auth:
         specifier: ^1.0.0
         version: 1.6.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.12)(vitest@4.1.5(@types/node@25.3.0)(jsdom@28.1.0(@noble/hashes@2.2.0))(msw@2.14.5(@types/node@25.3.0)(typescript@5.9.3))(vite@8.0.11(@types/node@25.3.0)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.47.1)(yaml@2.8.4)))
