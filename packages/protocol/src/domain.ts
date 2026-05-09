@@ -72,7 +72,7 @@ export const QueueItemDto = z.object({
   filename: z.string().nullable(),
   source: QueueItemSource,
   status: QueueItemStatus,
-  position: z.number().int(),
+  position: z.number().int().nullable(),
   queuedAt: z.string(),
   startedAt: z.string().nullable(),
   actualStartedAt: z.string().nullable(),

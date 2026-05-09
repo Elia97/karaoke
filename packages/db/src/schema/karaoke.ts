@@ -25,6 +25,19 @@ export const participantRole = pgEnum("participant_role", [
 
 export const lyricsSource = pgEnum("lyrics_source", ["lrclib", "manual"])
 
+export const queueItemStatus = pgEnum("queue_item_status", [
+  "QUEUED",
+  "PREPARING",
+  "PERFORMING",
+  "COMPLETED",
+  "SKIPPED",
+])
+
+export const queueItemSource = pgEnum("queue_item_source", [
+  "catalog",
+  "free_text",
+])
+
 export type KaraokeSessionConfig = {
   maxParticipants: number
   prepareTimeSeconds: number
@@ -86,5 +99,36 @@ export const catalogTrack = pgTable(
   (table) => [
     index("catalog_track_search_idx").using("gin", table.searchVector),
     index("catalog_track_owner_idx").on(table.ownerId),
+  ]
+)
+
+export const queueItem = pgTable(
+  "queue_item",
+  {
+    id: text("id").primaryKey(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => karaokeSession.id, { onDelete: "cascade" }),
+    singerId: text("singer_id")
+      .notNull()
+      .references(() => participant.id, { onDelete: "cascade" }),
+    singerNickname: text("singer_nickname").notNull(),
+    title: text("title").notNull(),
+    artist: text("artist"),
+    trackId: text("track_id").references(() => catalogTrack.id, {
+      onDelete: "set null",
+    }),
+    filename: text("filename"),
+    source: queueItemSource("source").notNull(),
+    status: queueItemStatus("status").notNull().default("QUEUED"),
+    position: integer("position"),
+    queuedAt: timestamp("queued_at").notNull().defaultNow(),
+    startedAt: timestamp("started_at"),
+    actualStartedAt: timestamp("actual_started_at"),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => [
+    index("queue_item_session_idx").on(table.sessionId),
+    index("queue_item_session_status_idx").on(table.sessionId, table.status),
   ]
 )
