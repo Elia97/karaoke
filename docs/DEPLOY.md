@@ -40,6 +40,7 @@ Due progetti separati nel monorepo:
    - Framework Preset: Vite (auto-rilevato)
    - Environment variables (Production + Preview):
      - `VITE_SERVER_URL` = URL Railway pubblico (es. `https://api.karaoke.tld`)
+   - `apps/web/vercel.json` definisce un rewrite di `/api/auth/*` verso il server Railway: il client Better Auth chiama l'auth sempre sul dominio Vercel (first-party), Vercel lo proxia internamente. Necessario per far funzionare l'OAuth cross-origin senza cookie partitioned che si perdono nel redirect Google. Se cambi URL del server Railway, aggiorna la `destination` del rewrite in `vercel.json` (è hardcoded, non env-driven).
 2. **Crea progetto** `karaoke-screen` (identico, root `apps/screen`):
    - `VITE_SERVER_URL` = URL Railway pubblico
    - `VITE_PARTICIPANT_JOIN_URL` = URL public di `apps/web` + `/join` (es. `https://app.karaoke.tld/join`)
@@ -63,7 +64,7 @@ Il deploy usa `railway.toml` in root del repo (start command Bun, niente Dockerf
 3. **Variables**:
    - `DATABASE_URL` (Postgres add-on Railway, oppure Neon Direct connection)
    - `BETTER_AUTH_SECRET` (32+ random bytes — rigenerare rispetto al dev)
-   - `BETTER_AUTH_URL` = URL pubblico Railway (es. `https://api.karaoke.tld`)
+   - `BETTER_AUTH_URL` = URL pubblico del progetto Vercel `karaoke-web` (es. `https://app.karaoke.tld` o `https://karaoke-web-<hash>.vercel.app`). **Non** l'URL del server Railway: Better Auth usa questo valore per generare il `redirect_uri` OAuth, e dato che il client lo invoca via rewrite Vercel, il callback deve arrivare sul dominio Vercel — non sul Railway.
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (vedi sezione 5)
    - `CORS_ORIGIN` = lista comma-separated di **tutti** gli origin Vercel autorizzati: `https://app.karaoke.tld,https://screen.karaoke.tld` + eventualmente i domain `*.vercel.app` dei preview
    - `PORT` viene fornito da Railway, il server lo legge
@@ -119,11 +120,13 @@ Workflow: `.github/workflows/ci.yml`. Gira su ogni PR e push su `main`.
 Single client ID con multi-redirect (un solo Google Cloud project). In Google Cloud Console > APIs & Services > Credentials:
 
 - **Authorized JavaScript origins**:
-  - `http://localhost:3000` (dev)
-  - URL Railway prod (es. `https://api.karaoke.tld`)
+  - `http://localhost:5173` (dev)
+  - URL Vercel `karaoke-web` (prod, es. `https://app.karaoke.tld`)
 - **Authorized redirect URIs**:
-  - `http://localhost:3000/api/auth/callback/google` (dev)
-  - `<URL Railway>/api/auth/callback/google` (prod)
+  - `http://localhost:5173/api/auth/callback/google` (dev)
+  - `<URL Vercel karaoke-web>/api/auth/callback/google` (prod)
+
+> Il flow OAuth è interamente "ospitato" sul dominio del frontend: il client chiama `/api/auth/*` same-origin, Vite/Vercel proxiano al server Railway. Per questo i redirect URI sono sul dominio Vercel/localhost, non su Railway.
 
 ## 6. Domini (riferimento)
 
