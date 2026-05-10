@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@workspace/ui/components/button'
 import {
   useConnectionStatus,
@@ -10,6 +10,7 @@ import {
   useSession,
 } from '@workspace/store/hooks'
 import { useKaraoke } from '../components/karaoke-provider'
+import { env } from '../lib/env'
 
 export const Route = createFileRoute('/host/sessions/$code')({
   component: HostSessionLive,
@@ -88,6 +89,8 @@ function HostSessionLive() {
           </Button>
         </div>
       </header>
+
+      <ConnectScreenCard sessionId={session?.id ?? null} />
 
       <section className="rounded-2xl border border-border bg-card p-6">
         <h2 className="text-xl font-semibold">Ora sta cantando</h2>
@@ -176,5 +179,113 @@ function HostSessionLive() {
         )}
       </section>
     </main>
+  )
+}
+
+function ConnectScreenCard({ sessionId }: { sessionId: string | null }) {
+  const [open, setOpen] = useState(false)
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [feedback, setFeedback] = useState<{
+    kind: 'ok' | 'error'
+    msg: string
+  } | null>(null)
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!sessionId) return
+    setBusy(true)
+    setFeedback(null)
+    try {
+      const res = await fetch(`${env.serverUrl}/api/screens/confirm-pair`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pairingCode: code.trim().toUpperCase(),
+          sessionId,
+        }),
+      })
+      const json = (await res.json()) as { error?: string }
+      if (!res.ok) throw new Error(json.error ?? 'Pairing fallito')
+      setFeedback({ kind: 'ok', msg: 'Schermo connesso!' })
+      setCode('')
+      setTimeout(() => setOpen(false), 1500)
+    } catch (err) {
+      setFeedback({
+        kind: 'error',
+        msg: err instanceof Error ? err.message : 'Errore sconosciuto',
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="flex items-center justify-between rounded-2xl border border-dashed border-border bg-card/50 p-4">
+        <p className="text-sm text-muted-foreground">
+          Hai uno schermo TV/proiettore per il tabellone live?
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setOpen(true)}
+          disabled={!sessionId}
+        >
+          Connetti schermo
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="space-y-3 rounded-2xl border border-border bg-card p-5"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">Connetti schermo</h3>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
+            setFeedback(null)
+            setCode('')
+          }}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ✕
+        </button>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Apri <span className="font-mono">http://localhost:5174</span> sulla TV e
+        inserisci qui il codice 6 cifre che vedi sullo schermo.
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          maxLength={6}
+          placeholder="ABC123"
+          className="w-32 rounded-lg border border-border bg-background p-2 text-center font-mono text-lg tracking-widest"
+        />
+        <Button type="submit" disabled={busy || code.length !== 6}>
+          {busy ? '...' : 'Conferma'}
+        </Button>
+      </div>
+      {feedback && (
+        <p
+          className={
+            feedback.kind === 'ok'
+              ? 'text-sm text-emerald-500'
+              : 'text-sm text-destructive'
+          }
+        >
+          {feedback.msg}
+        </p>
+      )}
+    </form>
   )
 }
