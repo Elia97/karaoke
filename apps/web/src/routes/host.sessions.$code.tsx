@@ -10,7 +10,6 @@ import {
   useSession,
 } from '@workspace/store/hooks'
 import { useKaraoke } from '../components/karaoke-provider'
-import { env } from '../lib/env'
 
 export const Route = createFileRoute('/host/sessions/$code')({
   component: HostSessionLive,
@@ -197,7 +196,7 @@ function ConnectScreenCard({ sessionId }: { sessionId: string | null }) {
     setBusy(true)
     setFeedback(null)
     try {
-      const res = await fetch(`${env.serverUrl}/api/screens/confirm-pair`, {
+      const res = await fetch('/api/screens/confirm-pair', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

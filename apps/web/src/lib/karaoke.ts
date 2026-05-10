@@ -1,12 +1,11 @@
 import { createKaraokeStore } from '@workspace/store'
 import { attachPersistence } from '@workspace/store/persist'
 import { createTypedClient } from '@workspace/socket-client'
-import { env } from './env'
 
 const STORAGE_KEY = 'karaoke:participant-token-v1'
 
 export const karaokeStore = createKaraokeStore()
-export const typedClient = createTypedClient({ url: env.serverUrl })
+export const typedClient = createTypedClient({ url: '' })
 
 typedClient.onEvent((event) => karaokeStore.applyEvent(event))
 typedClient.onConnectionStatus((status, info) =>
