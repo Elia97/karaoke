@@ -1,0 +1,5 @@
+[deploy]
+startCommand = "bun apps/server/src/index.ts"
+
+[variables]
+RAILPACK_BUN_VERSION = "1"
