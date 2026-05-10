@@ -1,4 +1,3 @@
 import { createKaraokeAuthClient } from '@workspace/auth/client'
-import { env } from './env'
 
-export const authClient = createKaraokeAuthClient(env.serverUrl)
+export const authClient = createKaraokeAuthClient(window.location.origin)
