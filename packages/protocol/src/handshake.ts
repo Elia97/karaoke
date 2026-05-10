@@ -14,6 +14,7 @@ export const SessionCodeSchema = z
 export const JoinHandshake = z.object({
   code: SessionCodeSchema.optional(),
   nickname: NicknameSchema.optional(),
+  hostToken: z.string().optional(),
   participantToken: z.string().optional(),
   screenToken: z.string().optional(),
 })

@@ -10,6 +10,7 @@ import {
   useSession,
 } from '@workspace/store/hooks'
 import { useKaraoke } from '../components/karaoke-provider'
+import { fetchHostToken } from '../lib/karaoke'
 
 export const Route = createFileRoute('/host/sessions/$code')({
   component: HostSessionLive,
@@ -27,8 +28,13 @@ function HostSessionLive() {
   const status = useConnectionStatus(store)
 
   useEffect(() => {
-    client.connect({ code })
+    let cancelled = false
+    void fetchHostToken().then((hostToken) => {
+      if (cancelled) return
+      client.connect({ code, hostToken })
+    })
     return () => {
+      cancelled = true
       client.disconnect()
     }
   }, [code, client])

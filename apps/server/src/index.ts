@@ -4,6 +4,7 @@ import { cors } from "hono/cors"
 import { Server as SocketIOServer } from "socket.io"
 import { createDbClient } from "@workspace/db/client"
 import { createAuth } from "@workspace/auth/server"
+import { createSignedToken, type HostTokenPayload } from "./utils/token"
 import { createSessionService } from "./karaoke/session.service"
 import { setupGateway } from "./karaoke/gateway"
 import { createSessionsController } from "./http/sessions.controller"
@@ -59,6 +60,15 @@ app.use(
 )
 app.get("/", (c) => c.text("Karaoke server"))
 app.get("/health", (c) => c.json({ status: "ok", uptime: process.uptime() }))
+app.get("/api/auth/socket-token", async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers })
+  if (!session?.user) return c.json({ error: "Unauthorized" }, 401)
+  const token = createSignedToken<HostTokenPayload>(
+    { userId: session.user.id },
+    authSecret
+  )
+  return c.json({ token })
+})
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
 app.route("/api/sessions", createSessionsController({ auth, sessions }))
 app.route("/api/catalog", createCatalogController({ auth, catalog }))
@@ -83,7 +93,6 @@ const io = new SocketIOServer(httpServer, {
 
 const gateway = setupGateway({
   io,
-  auth,
   sessions,
   catalog,
   queue,

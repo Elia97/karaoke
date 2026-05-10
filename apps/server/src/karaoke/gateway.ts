@@ -1,6 +1,5 @@
 import type { Server } from "socket.io"
 import { z } from "zod"
-import type { Auth } from "@workspace/auth/server"
 import { JoinHandshake } from "@workspace/protocol/handshake"
 import { PROTOCOL_VERSION } from "@workspace/protocol/version"
 import type {
@@ -34,7 +33,12 @@ import type {
   StartPlaybackAck,
 } from "@workspace/protocol/commands"
 import type { QueueItemDto } from "@workspace/protocol/domain"
-import { createParticipantToken, verifyParticipantToken } from "../utils/token"
+import {
+  createSignedToken,
+  verifySignedToken,
+  type HostTokenPayload,
+  type ParticipantTokenPayload,
+} from "../utils/token"
 import { deleteRoom, getOrCreateRoom, getRoom } from "./state"
 import type { SessionService } from "./session.service"
 import type { CatalogService } from "../catalog/catalog.service"
@@ -49,7 +53,6 @@ import type { LyricsService } from "../lyrics/lyrics.service"
 
 export type GatewayConfig = {
   io: Server
-  auth: Auth
   sessions: SessionService
   catalog: CatalogService
   queue: QueueService
@@ -80,16 +83,12 @@ export function setupGateway(config: GatewayConfig): Gateway {
       const handshake = JoinHandshake.parse(socket.handshake.auth)
 
       let hostUserId: string | null = null
-      const cookies = socket.handshake.headers.cookie
-      if (cookies) {
-        try {
-          const headers = new Headers()
-          headers.set("cookie", cookies)
-          const authResult = await config.auth.api.getSession({ headers })
-          if (authResult?.user) hostUserId = authResult.user.id
-        } catch {
-          // ignore: fall through to participant
-        }
+      if (handshake.hostToken) {
+        const verified = verifySignedToken<HostTokenPayload>(
+          handshake.hostToken,
+          config.participantTokenSecret
+        )
+        if (verified) hostUserId = verified.userId
       }
 
       if (handshake.screenToken) {
@@ -152,7 +151,7 @@ export function setupGateway(config: GatewayConfig): Gateway {
       } else {
         let reusedId: string | undefined
         if (handshake.participantToken) {
-          const verified = verifyParticipantToken(
+          const verified = verifySignedToken<ParticipantTokenPayload>(
             handshake.participantToken,
             config.participantTokenSecret
           )
@@ -271,7 +270,7 @@ export function setupGateway(config: GatewayConfig): Gateway {
 
     const participantToken =
       role === "PARTICIPANT"
-        ? createParticipantToken(
+        ? createSignedToken<ParticipantTokenPayload>(
             { participantId, sessionId },
             config.participantTokenSecret
           )
