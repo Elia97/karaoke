@@ -9,7 +9,7 @@
     "dev": "vite dev --port 5173",
     "build": "vite build",
     "preview": "vite preview --port 5173 --strictPort",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:e2e": "playwright test",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
