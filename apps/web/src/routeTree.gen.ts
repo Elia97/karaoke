@@ -14,7 +14,7 @@ import { Route as HostRouteImport } from './routes/host'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HostIndexRouteImport } from './routes/host.index'
 import { Route as SessionCodeRouteImport } from './routes/session.$code'
-import { Route as HostLoginRouteImport } from './routes/host.login'
+import { Route as HostLoginRouteImport } from './routes/host_.login'
 import { Route as HostCatalogRouteImport } from './routes/host.catalog'
 import { Route as HostSessionsNewRouteImport } from './routes/host.sessions.new'
 import { Route as HostSessionsCodeRouteImport } from './routes/host.sessions.$code'
@@ -45,9 +45,9 @@ const SessionCodeRoute = SessionCodeRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const HostLoginRoute = HostLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => HostRoute,
+  id: '/host_/login',
+  path: '/host/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const HostCatalogRoute = HostCatalogRouteImport.update({
   id: '/catalog',
@@ -92,7 +92,7 @@ export interface FileRoutesById {
   '/host': typeof HostRouteWithChildren
   '/join': typeof JoinRoute
   '/host/catalog': typeof HostCatalogRoute
-  '/host/login': typeof HostLoginRoute
+  '/host_/login': typeof HostLoginRoute
   '/session/$code': typeof SessionCodeRoute
   '/host/': typeof HostIndexRoute
   '/host/sessions/$code': typeof HostSessionsCodeRoute
@@ -126,7 +126,7 @@ export interface FileRouteTypes {
     | '/host'
     | '/join'
     | '/host/catalog'
-    | '/host/login'
+    | '/host_/login'
     | '/session/$code'
     | '/host/'
     | '/host/sessions/$code'
@@ -137,6 +137,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HostRoute: typeof HostRouteWithChildren
   JoinRoute: typeof JoinRoute
+  HostLoginRoute: typeof HostLoginRoute
   SessionCodeRoute: typeof SessionCodeRoute
 }
 
@@ -177,12 +178,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/host/login': {
-      id: '/host/login'
-      path: '/login'
+    '/host_/login': {
+      id: '/host_/login'
+      path: '/host/login'
       fullPath: '/host/login'
       preLoaderRoute: typeof HostLoginRouteImport
-      parentRoute: typeof HostRoute
+      parentRoute: typeof rootRouteImport
     }
     '/host/catalog': {
       id: '/host/catalog'
@@ -210,7 +211,6 @@ declare module '@tanstack/react-router' {
 
 interface HostRouteChildren {
   HostCatalogRoute: typeof HostCatalogRoute
-  HostLoginRoute: typeof HostLoginRoute
   HostIndexRoute: typeof HostIndexRoute
   HostSessionsCodeRoute: typeof HostSessionsCodeRoute
   HostSessionsNewRoute: typeof HostSessionsNewRoute
@@ -218,7 +218,6 @@ interface HostRouteChildren {
 
 const HostRouteChildren: HostRouteChildren = {
   HostCatalogRoute: HostCatalogRoute,
-  HostLoginRoute: HostLoginRoute,
   HostIndexRoute: HostIndexRoute,
   HostSessionsCodeRoute: HostSessionsCodeRoute,
   HostSessionsNewRoute: HostSessionsNewRoute,
@@ -230,6 +229,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HostRoute: HostRouteWithChildren,
   JoinRoute: JoinRoute,
+  HostLoginRoute: HostLoginRoute,
   SessionCodeRoute: SessionCodeRoute,
 }
 export const routeTree = rootRouteImport

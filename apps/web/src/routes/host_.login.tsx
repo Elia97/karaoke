@@ -2,13 +2,13 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { authClient } from '../lib/auth'
 
-export const Route = createFileRoute('/host/login')({ component: HostLogin })
+export const Route = createFileRoute('/host_/login')({ component: HostLogin })
 
 function HostLogin() {
   function onGoogleSignIn() {
     void authClient.signIn.social({
       provider: 'google',
-      callbackURL: '/host',
+      callbackURL: `${window.location.origin}/host`,
     })
   }
 
