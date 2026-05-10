@@ -17,7 +17,7 @@ const config = defineConfig({
   server: {
     proxy: {
       '/api/auth': {
-        target: process.env.VITE_SERVER_URL ?? 'http://localhost:3000',
+        target: 'http://localhost:3000',
         changeOrigin: true,
       },
     },
