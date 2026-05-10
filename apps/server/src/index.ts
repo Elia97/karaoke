@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
+import { cors } from "hono/cors"
 import { Server as SocketIOServer } from "socket.io"
 import { createDbClient } from "@workspace/db/client"
 import { createAuth } from "@workspace/auth/server"
@@ -21,7 +22,14 @@ const googleClientSecret = requireEnv("GOOGLE_CLIENT_SECRET")
 const authSecret = requireEnv("BETTER_AUTH_SECRET")
 const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000"
 const port = Number(process.env.PORT) || 3000
-const corsOrigin = process.env.CORS_ORIGIN ?? "*"
+const allowedOrigins = (process.env.CORS_ORIGIN ?? "*")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+const corsOrigin: string | string[] =
+  allowedOrigins.length === 1 && allowedOrigins[0] === "*"
+    ? "*"
+    : allowedOrigins
 
 const db = createDbClient(databaseUrl)
 const auth = createAuth({
@@ -30,6 +38,7 @@ const auth = createAuth({
   googleClientSecret,
   baseUrl,
   secret: authSecret,
+  trustedOrigins: Array.isArray(corsOrigin) ? corsOrigin : [],
 })
 const sessions = createSessionService(db)
 const catalog = createCatalogService(db)
@@ -39,6 +48,15 @@ const screenPairing = createScreenPairingService(db)
 const lyrics = createLyricsService(db)
 
 const app = new Hono()
+app.use(
+  "/api/*",
+  cors({
+    origin: corsOrigin,
+    credentials: true,
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+)
 app.get("/", (c) => c.text("Karaoke server"))
 app.get("/health", (c) => c.json({ status: "ok", uptime: process.uptime() }))
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
