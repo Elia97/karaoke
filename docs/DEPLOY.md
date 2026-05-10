@@ -38,9 +38,7 @@ Due progetti separati nel monorepo:
    - Import Git repository
    - Root Directory: `apps/web`
    - Framework Preset: Vite (auto-rilevato)
-   - Environment variables (Production + Preview):
-     - `VITE_SERVER_URL` = URL Railway pubblico (es. `https://api.karaoke.tld`)
-   - `apps/web/vercel.json` definisce un rewrite di `/api/auth/*` verso il server Railway: il client Better Auth chiama l'auth sempre sul dominio Vercel (first-party), Vercel lo proxia internamente. Necessario per far funzionare l'OAuth cross-origin senza cookie partitioned che si perdono nel redirect Google. Se cambi URL del server Railway, aggiorna la `destination` del rewrite in `vercel.json` (è hardcoded, non env-driven).
+   - **Nessuna env var richiesta**: il client web parla sempre same-origin (relative URL). `apps/web/vercel.json` definisce rewrite per `/api/*` e `/socket.io/*` verso il server Railway: il browser non vede mai il dominio del server, tutti i cookie sono first-party sul dominio Vercel. Se cambi URL del server Railway, aggiorna la `destination` dei rewrite in `vercel.json` (è hardcoded, non env-driven).
 2. **Crea progetto** `karaoke-screen` (identico, root `apps/screen`):
    - `VITE_SERVER_URL` = URL Railway pubblico
    - `VITE_PARTICIPANT_JOIN_URL` = URL public di `apps/web` + `/join` (es. `https://app.karaoke.tld/join`)

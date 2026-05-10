@@ -1,7 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Button } from '@workspace/ui/components/button'
-import { env } from '../lib/env'
 
 export const Route = createFileRoute('/host/catalog')({
   component: CatalogUpload,
@@ -23,7 +22,7 @@ function CatalogUpload() {
     setError(null)
     setResult(null)
     try {
-      const res = await fetch(`${env.serverUrl}/api/catalog/import`, {
+      const res = await fetch('/api/catalog/import', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

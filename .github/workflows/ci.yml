@@ -83,8 +83,6 @@ jobs:
 
       - name: Build web (generates routeTree.gen.ts)
         run: pnpm turbo build --filter=@workspace/web
-        env:
-          VITE_SERVER_URL: http://127.0.0.1:3000
 
       - name: Run E2E
         run: pnpm --filter=@workspace/web test:e2e

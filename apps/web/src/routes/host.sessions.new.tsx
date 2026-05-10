@@ -1,7 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Button } from '@workspace/ui/components/button'
-import { env } from '../lib/env'
 
 export const Route = createFileRoute('/host/sessions/new')({
   component: NewSession,
@@ -18,7 +17,7 @@ function NewSession() {
     setBusy(true)
     setError(null)
     try {
-      const res = await fetch(`${env.serverUrl}/api/sessions`, {
+      const res = await fetch('/api/sessions', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
