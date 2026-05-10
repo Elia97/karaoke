@@ -136,13 +136,3 @@ Quando avrai un dominio:
 | API server       | `api.karaoke.tld`    |
 
 Configurali su Vercel (web/screen) e Railway (api), poi aggiorna `BETTER_AUTH_URL`, `CORS_ORIGIN`, `VITE_SERVER_URL`, `VITE_PARTICIPANT_JOIN_URL` e i redirect Google.
-
-## Promozione a staging dedicato (futuro)
-
-Quando avrai utenti reali e non vorrai più toccare il DB prod dai preview:
-
-1. **Neon**: crea un branch `staging` (gratis) → ottieni un secondo `DATABASE_URL`
-2. **Railway**: crea un secondo service `karaoke-server-staging` linkato al branch `staging` del repo, con env vars proprie (`DATABASE_URL` del branch Neon, `BETTER_AUTH_URL` = URL staging, ecc.)
-3. **Vercel**: in ogni progetto, configura "Environment Variables" per il branch `staging` puntando al server staging; lascia `Production` invariato
-4. **Google OAuth**: aggiungi i redirect URI di staging al client esistente (oppure crea un secondo client)
-5. **Workflow**: feature → PR su `staging` → merge → smoke su staging → PR `staging`→`main` → prod
