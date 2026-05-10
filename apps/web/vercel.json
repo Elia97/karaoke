@@ -9,10 +9,6 @@
       "source": "/api/:path*",
       "destination": "https://karaoke-production-d2c5.up.railway.app/api/:path*"
     },
-    {
-      "source": "/socket.io/:path*",
-      "destination": "https://karaoke-production-d2c5.up.railway.app/socket.io/:path*"
-    },
-    { "source": "/((?!api/|socket.io/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

@@ -38,7 +38,9 @@ Due progetti separati nel monorepo:
    - Import Git repository
    - Root Directory: `apps/web`
    - Framework Preset: Vite (auto-rilevato)
-   - **Nessuna env var richiesta**: il client web parla sempre same-origin (relative URL). `apps/web/vercel.json` definisce rewrite per `/api/*` e `/socket.io/*` verso il server Railway: il browser non vede mai il dominio del server, tutti i cookie sono first-party sul dominio Vercel. Se cambi URL del server Railway, aggiorna la `destination` dei rewrite in `vercel.json` (è hardcoded, non env-driven).
+   - Environment variables (Production + Preview):
+     - `VITE_SOCKET_URL` = URL Railway pubblico (es. `https://api.karaoke.tld`). Solo per Socket.IO: i rewrite Vercel non supportano l'upgrade WebSocket, quindi il client si collega direttamente al server. L'autenticazione viaggia via signed token (endpoint `/api/auth/socket-token`), non via cookie.
+   - REST + auth rimangono same-origin: `apps/web/vercel.json` definisce un rewrite per `/api/*` verso il server Railway. Browser e cookie restano first-party sul dominio Vercel. Se cambi URL del server Railway, aggiorna sia `VITE_SOCKET_URL` che la `destination` del rewrite in `vercel.json` (hardcoded, non env-driven).
 2. **Crea progetto** `karaoke-screen` (identico, root `apps/screen`):
    - `VITE_SERVER_URL` = URL Railway pubblico
    - `VITE_PARTICIPANT_JOIN_URL` = URL public di `apps/web` + `/join` (es. `https://app.karaoke.tld/join`)
