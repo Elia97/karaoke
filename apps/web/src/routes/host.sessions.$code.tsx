@@ -106,7 +106,25 @@ function HostSessionLive() {
         ) : (
           <p className="mt-3 text-muted-foreground">Nessuno sta cantando.</p>
         )}
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {currentSong && !currentSong.actualStartedAt && (
+            <Button
+              variant="default"
+              onClick={async () => {
+                await client.startPlayback({ queueItemId: currentSong.id })
+              }}
+            >
+              ▶ Avvia lyrics
+            </Button>
+          )}
+          {currentSong?.actualStartedAt && (
+            <span className="text-sm text-muted-foreground">
+              Lyrics avviate alle{' '}
+              {new Date(currentSong.actualStartedAt).toLocaleTimeString(
+                'it-IT',
+              )}
+            </span>
+          )}
           <Button onClick={onNextSong}>Prossimo brano</Button>
           {nextSinger && (
             <p className="text-sm text-muted-foreground">

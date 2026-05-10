@@ -192,6 +192,25 @@ export function createQueueService(db: DbClient) {
     return { completed, nowPlaying, prepare }
   }
 
+  async function startPlayback(input: {
+    sessionId: string
+    queueItemId: string
+  }): Promise<QueueItemDto | null> {
+    const now = new Date()
+    const [updated] = await db
+      .update(schema.queueItem)
+      .set({ actualStartedAt: now })
+      .where(
+        and(
+          eq(schema.queueItem.id, input.queueItemId),
+          eq(schema.queueItem.sessionId, input.sessionId),
+          eq(schema.queueItem.status, "PERFORMING")
+        )
+      )
+      .returning()
+    return updated ? rowToQueueItemDto(updated) : null
+  }
+
   async function listBySession(sessionId: string): Promise<QueueItemDto[]> {
     const rows = await db
       .select()
@@ -230,6 +249,7 @@ export function createQueueService(db: DbClient) {
     requestSong,
     removeSong,
     advanceQueue,
+    startPlayback,
     listBySession,
   }
 }

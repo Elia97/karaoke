@@ -50,3 +50,6 @@ export const useLastError = (s: KaraokeStore) =>
 
 export const useParticipantToken = (s: KaraokeStore) =>
   useKaraokeSelector(s, (state) => state.participantToken)
+
+export const useLyrics = (s: KaraokeStore) =>
+  useKaraokeSelector(s, (state) => state.lyrics)

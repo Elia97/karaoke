@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import {
   useConnectionStatus,
   useCurrentSong,
+  useLyrics,
   useNextSinger,
   useQueue,
   useSession,
@@ -10,6 +11,7 @@ import {
 import { getOrCreateScreenToken } from '../lib/karaoke'
 import { useKaraoke } from '../components/karaoke-provider'
 import { env } from '../lib/env'
+import { LyricsScroll } from '../components/lyrics-scroll'
 
 export const Route = createFileRoute('/live')({ component: ScreenLive })
 
@@ -18,6 +20,7 @@ function ScreenLive() {
   const { store, client } = useKaraoke()
   const session = useSession(store)
   const queue = useQueue(store)
+  const lyrics = useLyrics(store)
   const currentSong = useCurrentSong(store)
   const nextSinger = useNextSinger(store)
   const status = useConnectionStatus(store)
@@ -80,6 +83,7 @@ function ScreenLive() {
           currentSong={currentSong}
           nextSinger={nextSinger}
           queue={queue}
+          lyrics={lyrics}
           sessionStatus={session?.status ?? '...'}
           connectionStatus={status}
         />
@@ -116,12 +120,18 @@ type TabelloneProps = {
   currentSong: ReturnType<typeof useCurrentSong>
   nextSinger: ReturnType<typeof useNextSinger>
   queue: ReturnType<typeof useQueue>
+  lyrics: ReturnType<typeof useLyrics>
   sessionStatus: string
   connectionStatus: string
 }
 
 function Tabellone(props: TabelloneProps) {
-  const { currentSong, nextSinger, queue } = props
+  const { currentSong, nextSinger, queue, lyrics } = props
+  const hasLyrics =
+    lyrics &&
+    currentSong &&
+    lyrics.itemId === currentSong.id &&
+    (lyrics.syncedLyrics || lyrics.plainLyrics)
   return (
     <div className="grid min-h-screen grid-cols-3 gap-6 p-12">
       <section className="col-span-2 flex flex-col justify-between rounded-3xl border border-border bg-card p-12">
@@ -131,16 +141,21 @@ function Tabellone(props: TabelloneProps) {
           </p>
           {currentSong ? (
             <>
-              <h1 className="mt-6 text-7xl font-bold leading-tight">
+              <h1 className="mt-6 text-5xl font-bold leading-tight">
                 {currentSong.title}
               </h1>
-              <p className="mt-4 text-3xl text-muted-foreground">
-                {currentSong.artist ?? '—'}
+              <p className="mt-2 text-2xl text-muted-foreground">
+                {currentSong.artist ?? '—'} · {currentSong.singerNickname}
               </p>
-              <p className="mt-12 text-4xl">
-                <span className="text-muted-foreground">microfono di </span>
-                <span className="font-bold">{currentSong.singerNickname}</span>
-              </p>
+              {hasLyrics ? (
+                <div className="mt-8">
+                  <LyricsScroll lyrics={lyrics} />
+                </div>
+              ) : (
+                <p className="mt-12 text-3xl text-muted-foreground">
+                  In attesa che il DJ avvii i lyrics...
+                </p>
+              )}
             </>
           ) : (
             <h1 className="mt-6 text-6xl font-bold text-muted-foreground">

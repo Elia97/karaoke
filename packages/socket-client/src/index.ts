@@ -10,6 +10,8 @@ import type {
   SearchTracksAck,
   SearchTracksCommand,
   SessionLifecycleAck,
+  StartPlaybackAck,
+  StartPlaybackCommand,
 } from "@workspace/protocol/commands"
 
 const SERVER_EVENT_TYPES: ReadonlyArray<ServerEvent["type"]> = [
@@ -19,6 +21,7 @@ const SERVER_EVENT_TYPES: ReadonlyArray<ServerEvent["type"]> = [
   "queueUpdated",
   "nowPlaying",
   "prepare",
+  "playbackStarted",
   "hostDisconnected",
   "hostReconnected",
   "sessionPaused",
@@ -61,6 +64,9 @@ export type TypedClient = {
   ) => Promise<RequestSongAck>
   removeSong: (cmd: Omit<RemoveSongCommand, "type">) => Promise<RemoveSongAck>
   nextSong: () => Promise<NextSongAck>
+  startPlayback: (
+    cmd: Omit<StartPlaybackCommand, "type">
+  ) => Promise<StartPlaybackAck>
   pauseSession: () => Promise<SessionLifecycleAck>
   resumeSession: () => Promise<SessionLifecycleAck>
   endSession: () => Promise<SessionLifecycleAck>
@@ -143,6 +149,12 @@ export function createTypedClient(config: CreateClientConfig): TypedClient {
     },
     nextSong() {
       return socket.emitWithAck("nextSong", { type: "nextSong" })
+    },
+    startPlayback(cmd) {
+      return socket.emitWithAck("startPlayback", {
+        type: "startPlayback",
+        ...cmd,
+      })
     },
     pauseSession() {
       return socket.emitWithAck("pauseSession", { type: "pauseSession" })

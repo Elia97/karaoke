@@ -7,6 +7,7 @@ import type {
   HostDisconnectedEvent,
   HostReconnectedEvent,
   NowPlayingEvent,
+  PlaybackStartedEvent,
   PrepareEvent,
   QueueUpdatedEvent,
   SessionEndedEvent,
@@ -22,6 +23,7 @@ import {
   RemoveSongCommand,
   RequestSongCommand,
   SearchTracksCommand,
+  StartPlaybackCommand,
 } from "@workspace/protocol/commands"
 import type {
   NextSongAck,
@@ -29,6 +31,7 @@ import type {
   RequestSongAck,
   SearchTracksAck,
   SessionLifecycleAck,
+  StartPlaybackAck,
 } from "@workspace/protocol/commands"
 import type { QueueItemDto } from "@workspace/protocol/domain"
 import { createParticipantToken, verifyParticipantToken } from "../utils/token"
@@ -42,6 +45,7 @@ import type {
   PendingActionsService,
 } from "../lifecycle/pending-actions.service"
 import type { ScreenPairingService } from "../screen/screen-pairing.service"
+import type { LyricsService } from "../lyrics/lyrics.service"
 
 export type GatewayConfig = {
   io: Server
@@ -51,6 +55,7 @@ export type GatewayConfig = {
   queue: QueueService
   pendingActions: PendingActionsService
   screenPairing: ScreenPairingService
+  lyrics: LyricsService
   participantTokenSecret: string
   hostReconnectWindowSeconds?: number
 }
@@ -457,6 +462,55 @@ export function setupGateway(config: GatewayConfig): Gateway {
           await broadcastQueueUpdated(sessionId, "advanced")
         } catch (e) {
           console.error("[gateway] nextSong error", e)
+          ack({ ok: false, error: "INTERNAL" })
+        }
+      }
+    )
+
+    socket.on(
+      "startPlayback",
+      async (payload: unknown, ack?: (response: StartPlaybackAck) => void) => {
+        if (typeof ack !== "function") return
+        try {
+          if (role !== "HOST") {
+            ack({ ok: false, error: "FORBIDDEN" })
+            return
+          }
+          const cmd = StartPlaybackCommand.parse(payload)
+          const updated = await config.queue.startPlayback({
+            sessionId,
+            queueItemId: cmd.queueItemId,
+          })
+          if (!updated || !updated.actualStartedAt) {
+            ack({ ok: false, error: "ITEM_NOT_FOUND" })
+            return
+          }
+          ack({ ok: true })
+          let lyrics: PlaybackStartedEvent["lyrics"] = null
+          if (updated.trackId) {
+            const result = await config.lyrics.getLyricsForTrack(
+              updated.trackId
+            )
+            if (result) {
+              lyrics = {
+                syncedLyrics: result.syncedLyrics,
+                plainLyrics: result.plainLyrics,
+              }
+            }
+          }
+          const evt: PlaybackStartedEvent = {
+            type: "playbackStarted",
+            item: updated,
+            actualStartedAt: updated.actualStartedAt,
+            lyrics,
+          }
+          ns.to(roomName(sessionId)).emit("playbackStarted", evt)
+        } catch (e) {
+          if (e instanceof z.ZodError) {
+            ack({ ok: false, error: "INVALID_PAYLOAD" })
+            return
+          }
+          console.error("[gateway] startPlayback error", e)
           ack({ ok: false, error: "INTERNAL" })
         }
       }

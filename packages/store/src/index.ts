@@ -26,6 +26,13 @@ export type LastError = {
   message: string
 }
 
+export type LyricsSnapshot = {
+  itemId: string
+  actualStartedAtMs: number
+  syncedLyrics: string | null
+  plainLyrics: string | null
+}
+
 export type KaraokeState = {
   connectionStatus: ConnectionStatus
   protocolVersion: string | null
@@ -34,6 +41,7 @@ export type KaraokeState = {
   participants: ParticipantDto[]
   queue: QueueItemDto[]
   currentSong: QueueItemDto | null
+  lyrics: LyricsSnapshot | null
   participantToken: string | null
   hostDisconnectDeadlineMs: number | null
   prepareNotification: PrepareNotification | null
@@ -48,6 +56,7 @@ const initialState: KaraokeState = {
   participants: [],
   queue: [],
   currentSong: null,
+  lyrics: null,
   participantToken: null,
   hostDisconnectDeadlineMs: null,
   prepareNotification: null,
@@ -99,10 +108,24 @@ export function createKaraokeStore(seed: Partial<KaraokeState> = {}) {
         store.setState((s) => ({
           ...s,
           currentSong: event.item,
+          lyrics: null,
           prepareNotification:
             s.prepareNotification?.item.id === event.item.id
               ? null
               : s.prepareNotification,
+        }))
+        return
+      case "playbackStarted":
+        store.setState((s) => ({
+          ...s,
+          currentSong:
+            s.currentSong?.id === event.item.id ? event.item : s.currentSong,
+          lyrics: {
+            itemId: event.item.id,
+            actualStartedAtMs: new Date(event.actualStartedAt).getTime(),
+            syncedLyrics: event.lyrics?.syncedLyrics ?? null,
+            plainLyrics: event.lyrics?.plainLyrics ?? null,
+          },
         }))
         return
       case "prepare":

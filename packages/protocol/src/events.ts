@@ -51,6 +51,19 @@ export const PrepareEvent = z.object({
 })
 export type PrepareEvent = z.infer<typeof PrepareEvent>
 
+export const PlaybackStartedEvent = z.object({
+  type: z.literal("playbackStarted"),
+  item: QueueItemDto,
+  actualStartedAt: z.string(),
+  lyrics: z
+    .object({
+      syncedLyrics: z.string().nullable(),
+      plainLyrics: z.string().nullable(),
+    })
+    .nullable(),
+})
+export type PlaybackStartedEvent = z.infer<typeof PlaybackStartedEvent>
+
 export const HostDisconnectedEvent = z.object({
   type: z.literal("hostDisconnected"),
   reconnectDeadlineMs: z.number(),
@@ -92,6 +105,7 @@ export const ServerEvent = z.discriminatedUnion("type", [
   QueueUpdatedEvent,
   NowPlayingEvent,
   PrepareEvent,
+  PlaybackStartedEvent,
   HostDisconnectedEvent,
   HostReconnectedEvent,
   SessionPausedEvent,

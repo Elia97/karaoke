@@ -13,6 +13,7 @@ import { createPendingActionsService } from "./lifecycle/pending-actions.service
 import { createScheduler } from "./lifecycle/scheduler"
 import { createScreenPairingService } from "./screen/screen-pairing.service"
 import { createScreensController } from "./http/screens.controller"
+import { createLyricsService } from "./lyrics/lyrics.service"
 
 const databaseUrl = requireEnv("DATABASE_URL")
 const googleClientId = requireEnv("GOOGLE_CLIENT_ID")
@@ -35,6 +36,7 @@ const catalog = createCatalogService(db)
 const queue = createQueueService(db)
 const pendingActions = createPendingActionsService(db)
 const screenPairing = createScreenPairingService(db)
+const lyrics = createLyricsService(db)
 
 const app = new Hono()
 app.get("/", (c) => c.text("Karaoke server"))
@@ -69,6 +71,7 @@ const gateway = setupGateway({
   queue,
   pendingActions,
   screenPairing,
+  lyrics,
   participantTokenSecret: authSecret,
 })
 
