@@ -15,7 +15,7 @@ function parseLrc(content: string): LrcLine[] {
       const sec = Number(match[2])
       if (Number.isFinite(min) && Number.isFinite(sec)) {
         stamps.push(Math.round((min * 60 + sec) * 1000))
-        lastIndex = (match.index ?? 0) + match[0].length
+        lastIndex = match.index + match[0].length
       }
     }
     if (stamps.length === 0) continue
@@ -41,7 +41,7 @@ export function LyricsScroll({ lyrics }: { lyrics: LyricsSnapshot }) {
       const elapsedMs = Date.now() - lyrics.actualStartedAtMs
       let idx = 0
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i]!.timeMs <= elapsedMs) idx = i
+        if (lines[i].timeMs <= elapsedMs) idx = i
         else break
       }
       setCurrentIdx(idx)

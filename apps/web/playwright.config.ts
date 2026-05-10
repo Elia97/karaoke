@@ -9,7 +9,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? 'github' : 'list',
+  reporter: process.env.CI ? [['list'], ['github']] : 'list',
   use: {
     baseURL: BASE_URL,
     trace: 'on-first-retry',
@@ -24,7 +24,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_NO_WEBSERVER
     ? undefined
     : {
-        command: 'pnpm dev',
+        command: process.env.CI ? 'pnpm preview' : 'pnpm dev',
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 60_000,
